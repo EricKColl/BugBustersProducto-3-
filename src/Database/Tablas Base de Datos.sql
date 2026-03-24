@@ -2,6 +2,9 @@
 -- =========================
 -- TABLA CLIENTES
 -- =========================
+CREATE DATABASE IF NOT EXISTS producto3;
+USE producto3;
+
 CREATE TABLE clientes (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(100) NOT NULL UNIQUE,
