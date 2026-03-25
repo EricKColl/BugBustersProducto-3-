@@ -17,4 +17,8 @@ public interface PedidoDAO {
     void actualizar(Pedido pedido) throws DAOException;
 
     void eliminar(int id) throws DAOException;
+
+    List<Pedido> obtenerPedidosPendientes(int idCliente) throws DAOException;
+
+    List<Pedido> obtenerPedidosEnviados(int idCliente) throws DAOException;
 }

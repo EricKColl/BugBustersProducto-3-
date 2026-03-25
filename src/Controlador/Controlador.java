@@ -1,15 +1,20 @@
 package Controlador;
 
-import Modelo.Articulo;
+import DAO.Interfaces.PedidoDAO;
+import DAO.Interfaces.ClienteDAO;
+import DAO.Interfaces.ArticuloDAO;
+import Factory.DAOFactory;
+import Modelo.Pedido;
 import Modelo.Cliente;
+import Modelo.Articulo;
 import Modelo.ClienteEstandar;
 import Modelo.ClientePremium;
-import Modelo.Datos;
-import Modelo.Pedido;
+import Excepciones.DAOException;
 import Modelo.Excepciones.*;
-import java.time.LocalDateTime;
+import java.util.List;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 /**
  * Clase Controlador que actúa como puente entre la Vista y el Modelo.
@@ -23,36 +28,146 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>Recibir y validar los datos provenientes de la vista</li>
  *   <li>Crear los objetos del modelo (Artículo, Cliente, Pedido)</li>
- *   <li>Invocar los métodos correspondientes en la capa de datos</li>
+ *   <li>Invocar los métodos correspondientes en la capa de DAO</li>
  *   <li>Manejar las excepciones y transformarlas cuando sea necesario</li>
  *   <li>Devolver los resultados a la vista para su presentación</li>
  * </ul>
  *
  * @author BugBusters
- * @version 1.0
+ * @version 2.0
  * @since 1.0
  */
 
 public class Controlador {
 
-    /**
-     * Referencia al modelo principal de la aplicación.
-     * La clase Datos se encargará de almacenar toda la información del sistema.
-     */
-    private Datos datos;
+    private PedidoDAO pedidoDAO;
+    private ClienteDAO clienteDAO;
+    private ArticuloDAO articuloDAO;
 
-    /**
-     * Constructor que inicializa el controlador.
-     * Crea una nueva instancia de la clase Datos para poder trabajar
-     * con la información de la aplicación.
-     */
     public Controlador() {
-        datos = new Datos();
+        DAOFactory factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
+
+        // Obtenemos todos los DAOs necesarios
+        this.pedidoDAO = factory.getPedidoDAO();
+        this.clienteDAO = factory.getClienteDAO();
+        this.articuloDAO = factory.getArticuloDAO();
     }
 
-    /* =========================================================
+    // ==========================================
+    // MÉTODOS DE GESTIÓN DE PEDIDOS
+    // ==========================================
+
+    public void añadirPedido(Pedido pedido) {
+        try {
+            pedidoDAO.insertar(pedido);
+            System.out.println("Pedido guardado correctamente en la base de datos.");
+        } catch (DAOException e) {
+            System.err.println("Error al guardar el pedido: " + e.getMessage());
+        }
+    }
+
+    public void eliminarPedido(int idPedido) {
+        try {
+            pedidoDAO.eliminar(idPedido);
+            System.out.println("El pedido " + idPedido + " ha sido cancelado y eliminado con éxito.");
+        } catch (DAOException e) {
+            System.err.println("❌ " + e.getMessage());
+        }
+    }
+
+    public void mostrarPedidosPendientes(int idCliente) {
+        try {
+            List<Pedido> pendientes = pedidoDAO.obtenerPedidosPendientes(idCliente);
+            if (pendientes.isEmpty()) {
+                System.out.println("No hay pedidos pendientes de envío.");
+            } else {
+                System.out.println("\n--- PEDIDOS PENDIENTES ---");
+                for (Pedido p : pendientes) {
+                    double total = calcularTotalPedido(p);
+                    System.out.println(p.toString() + "TOTAL a pagar: " + String.format("%.2f", total) + "€");
+                }
+            }
+        } catch (DAOException e) {
+            System.err.println("❌ Error al recuperar los pedidos pendientes: " + e.getMessage());
+        }
+    }
+
+    public void mostrarPedidosEnviados(int idCliente) {
+        try {
+            List<Pedido> enviados = pedidoDAO.obtenerPedidosEnviados(idCliente);
+            if (enviados.isEmpty()) {
+                System.out.println("No hay pedidos enviados.");
+            } else {
+                System.out.println("\n--- PEDIDOS ENVIADOS ---");
+                for (Pedido p : enviados) {
+                    double total = calcularTotalPedido(p);
+                    System.out.println(p.toString() + "TOTAL pagado: " + String.format("%.2f", total) + "€");
+                }
+            }
+        } catch (DAOException e) {
+            System.err.println("❌ Error al recuperar los pedidos enviados: " + e.getMessage());
+        }
+    }
+
+    // ==========================================
+    // LÓGICA DE NEGOCIO (Descuentos y Totales)
+    // ==========================================
+
+    private double calcularTotalPedido(Pedido pedido) {
+        double total = 0.0;
+
+        try {
+            Articulo articulo = articuloDAO.obtenerPorId(pedido.getIdArticulo());
+            Cliente cliente = clienteDAO.obtenerPorId(pedido.getIdCliente());
+
+            if (articulo != null && cliente != null) {
+                double costeArticulos = articulo.getPrecioVenta() * pedido.getCantidad();
+                double gastosEnvio = articulo.getGastosEnvio();
+
+
+                if (cliente.getTipoCliente().equalsIgnoreCase("premium")) {
+                    gastosEnvio = gastosEnvio * 0.80;
+                }
+
+
+                total = costeArticulos + gastosEnvio;
+            }
+        } catch (DAOException e) {
+            System.err.println("❌ Error al obtener datos para calcular el total: " + e.getMessage());
+        }
+
+        return total;
+    }
+
+    // ==========================================
+    // MÉTODOS PUENTE PARA CLIENTES
+    // ==========================================
+
+    public boolean existeCliente(int idCliente) {
+        try {
+            return clienteDAO.obtenerPorId(idCliente) != null;
+        } catch (DAOException e) {
+            System.err.println("Error al verificar si el cliente existe: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public void añadirClienteRapido(int idCliente, String email, String nombre, String domicilio, String nif, String tipo) {
+        try {
+            Cliente nuevoCliente = new Cliente(idCliente, email, nombre, domicilio, nif, tipo);
+
+            clienteDAO.insertar(nuevoCliente);
+            System.out.println("Cliente registrado con éxito. Retomando el pedido...");
+        } catch (DAOException e) {
+            System.err.println("Error al crear el cliente rápido: " + e.getMessage());
+        }
+    }
+
+
+/* =========================================================
        ================= GESTIÓN DE ARTÍCULOS ==================
        ========================================================= */
+
     /**
      * Busca un artículo por su código.
      *
@@ -60,10 +175,10 @@ public class Controlador {
      * @return El objeto Artículo si existe
      * @throws RecursoNoEncontradoException Si no existe un artículo con ese código
      */
-    public Articulo buscarArticulo(String codigo) throws RecursoNoEncontradoException {
-        Articulo articulo = datos.buscarArticulo(codigo);
-        if (articulo == null) { // Lanzamos excepción si no existe
-            throw new RecursoNoEncontradoException("Artículo", codigo);
+    public Articulo buscarArticulo(String codigo) throws RecursoNoEncontradoException, DAOException {
+        Articulo articulo = articuloDAO.obtenerPorId(codigo);
+        if (articulo == null) {
+            throw new RecursoNoEncontradoException("Articulo", codigo);
         }
         return articulo;
     }
@@ -71,24 +186,23 @@ public class Controlador {
     /**
      * Añade un nuevo artículo al sistema.
      *
-     * @param codigo Código único identificador del artículo
-     * @param descripcion Descripción textual del artículo
-     * @param precioVenta Precio de venta del artículo en euros
-     * @param gastosEnvio Gastos de envío asociados al artículo
+     * @param codigo                   Código único identificador del artículo
+     * @param descripcion          Descripción textual del artículo
+     * @param precioVenta          Precio de venta del artículo en euros
+     * @param gastosEnvio          Gastos de envío asociados al artículo
      * @param tiempoPreparacionMin Tiempo de preparación en minutos
      * @throws YaExisteException Si ya existe un artículo con el mismo código
      */
     public void anadirArticulo(String codigo, String descripcion, double precioVenta,
                                double gastosEnvio, int tiempoPreparacionMin)
-            throws YaExisteException {
+            throws YaExisteException, DAOException {
 
-        if (datos.existeArticulo(codigo)) { // Lanzamos excepción si ya existe
+        if (articuloDAO.obtenerPorId(codigo) != null) {
             throw new YaExisteException("artículo", codigo);
         }
 
-        Articulo articulo = new Articulo(codigo, descripcion, precioVenta,
-                gastosEnvio, tiempoPreparacionMin);
-        datos.anadirArticulo(articulo);
+        Articulo articulo = new Articulo(codigo, descripcion, precioVenta, gastosEnvio, tiempoPreparacionMin);
+        articuloDAO.insertar(articulo);
     }
 
     /**
@@ -96,234 +210,7 @@ public class Controlador {
      *
      * @return Lista de todos los artículos
      */
-    public List<Articulo> obtenerTodosArticulos() {
-        return datos.obtenerTodosArticulos();
-    }
-
-    /* =========================================================
-       =================== GESTIÓN DE PEDIDOS ==================
-       ========================================================= */
-
-    /**
-     * Añade un nuevo pedido al sistema.
-     *
-     * @param emailCliente Email del cliente que realiza el pedido
-     * @param codigoArticulo Código del artículo solicitado
-     * @param cantidad Cantidad de unidades del artículo
-     * @return El objeto Pedido creado
-     * @throws RecursoNoEncontradoException Si el cliente o el artículo no existen
-     */
-    public Pedido anadirPedido(String emailCliente, String codigoArticulo, int cantidad)
-            throws RecursoNoEncontradoException, EmailInvalidoException {
-        emailValido(emailCliente); // Validar email
-        // Buscar cliente
-        Cliente cliente = datos.buscarCliente(emailCliente);
-        if (cliente == null) { // Lanzamos excepción si el cliente no existe
-            throw new RecursoNoEncontradoException("Cliente", emailCliente);
-        }
-
-        // Buscar artículo
-        Articulo articulo = datos.buscarArticulo(codigoArticulo);
-        if (articulo == null) { // Lanzamos excepción si el artículo no existe
-            throw new RecursoNoEncontradoException("Artículo", codigoArticulo);
-        }
-
-        // Pide a datos un número de pedido nuevo y crea el pedido con los datos
-        int numeroPedido = datos.generarNumeroPedido();
-        Pedido pedido = new Pedido(numeroPedido, cliente, articulo, cantidad, LocalDateTime.now());
-        datos.anadirPedido(pedido);
-
-        return pedido;
-    }
-
-
-    /**
-     * Elimina un pedido del sistema si es cancelable.
-     *
-     * @param numeroPedido Número identificador del pedido a eliminar
-     * @throws RecursoNoEncontradoException Si no existe un pedido con ese número
-     * @throws PedidoNoCancelableException Si el pedido ya ha sido enviado y no se puede cancelar
-     */
-    public void eliminarPedido(int numeroPedido) throws RecursoNoEncontradoException, PedidoNoCancelableException {
-        Pedido pedido = datos.buscarPedido(numeroPedido);
-        if (pedido == null) { // Lanzamos excepción si no existe
-            throw new RecursoNoEncontradoException("Pedido", String.valueOf(numeroPedido));
-        }
-        if (!pedido.puedeCancelar()) { // Lanzamos excepción si ya está enviado
-            throw new PedidoNoCancelableException(numeroPedido);
-        }
-        datos.eliminarPedido(numeroPedido);
-    }
-
-    /**
-     * Obtiene pedidos pendientes. Si se proporciona email, filtra por cliente.
-     *
-     * @param emailCliente Email para filtrar (null = todos los pedidos)
-     * @return Lista de pedidos pendientes (puede estar vacía)
-     * @throws RecursoNoEncontradoException Si el email no es null y el cliente no existe
-     */
-    public List<Pedido> obtenerPedidosPendientes(String emailCliente)
-            throws EmailInvalidoException, RecursoNoEncontradoException {
-        // 1. Si se introduce vacío devuelve todos directamente
-        if (emailCliente == null || emailCliente.isEmpty()) {
-            return datos.getPedidosPendientes();
-        }
-        emailValido(emailCliente); // Validar email, puede lanzar su excepción
-
-        if (!datos.existeCliente(emailCliente)) { // Lanzamos excepción si el email no se encuentra
-            throw new RecursoNoEncontradoException("Cliente", emailCliente);
-        }
-        // 2. Si existe envía los datos
-        return datos.getPedidosPendientes().stream()
-                .filter(p -> p.getCliente().getEmail().equalsIgnoreCase(emailCliente))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Obtiene pedidos enviados. Si se proporciona email, filtra por cliente.
-     *
-     * @param emailCliente Email para filtrar (null o vacío = todos los pedidos)
-     * @return Lista de pedidos enviados (puede estar vacía)
-     * @throws RecursoNoEncontradoException Si el email no es null/vacío y el cliente no existe
-     */
-    public List<Pedido> obtenerPedidosEnviados(String emailCliente)
-            throws EmailInvalidoException, RecursoNoEncontradoException {
-        // 1. Si se introduce vacío devuelve todos directamente
-        if (emailCliente == null || emailCliente.isEmpty()) {
-            return datos.getPedidosEnviados();
-        }
-        emailValido(emailCliente); // Validar email, puede lanzar su excepción
-        if (!datos.existeCliente(emailCliente)) { // Lanzamos excepción si el email no se encuentra
-            throw new RecursoNoEncontradoException("Cliente", emailCliente);
-        }
-        // 2. Si existe filtra los pedidos enviados del cliente
-        return datos.getPedidosEnviados().stream()
-                .filter(p -> p.getCliente().getEmail().equalsIgnoreCase(emailCliente))
-                .collect(Collectors.toList());
-    }
-    /* =========================================================
-       =================== GESTIÓN DE CLIENTES ==================
-       ========================================================= */
-
-    /**
-     * Valida el formato de una dirección de correo electrónico.
-     *
-     * @param email Email a validar
-     * @return true si el email tiene un formato válido, false en caso contrario
-     */
-    public boolean emailValido (String email) throws EmailInvalidoException {
-        String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]+$";
-        // 1. Validar formato del email
-        if (email == null || !email.matches(regex)) {
-            throw new EmailInvalidoException(email); // Lanzamos excepción si el email no es válido
-        }
-        return true; // Si es correcto pasa la validación
-    }
-
-    /**
-     * Comprueba si existe un cliente lanzando excepción
-     * Útil para la vista cuando quiere saber si puede crear o no
-     */
-    public boolean existeCliente(String email) throws YaExisteException {
-        if (datos.existeCliente(email)) {
-            throw new YaExisteException("cliente", email); // Lanzamos excepción si el email ya existe
-        }
-        return false; // Si es correcto pasa la validación
-    }
-
-
-    /**
-     * Añade un nuevo cliente al sistema.
-     *
-     * @param email Email único del cliente
-     * @param nombre Nombre completo del cliente
-     * @param domicilio Dirección física del cliente
-     * @param nif NIF del cliente
-     * @param tipoCliente Tipo de cliente (1-Estándar, 2-Premium)
-     * @return true si el cliente se añadió correctamente
-     * @throws EmailInvalidoException Si el email no tiene un formato válido
-     * @throws TipoClienteInvalidoException Si el tipo de cliente no es 1 o 2
-     * @throws YaExisteException Si ya existe un cliente con el mismo email
-     */
-    public Cliente anadirCliente(String email, String nombre, String domicilio, String nif, int tipoCliente)
-            throws TipoClienteInvalidoException, YaExisteException, EmailInvalidoException {
-
-        emailValido(email); // Validar email, puede lanzar EmailInvalidoException
-        existeCliente(email); // Verificar si ya existe, puede lanzar YaExisteException
-
-        // 1. Crear cliente según tipo
-        Cliente nuevoCliente;
-        if (tipoCliente == 1) {
-            nuevoCliente = new ClienteEstandar(email, nombre, domicilio, nif);
-        } else if (tipoCliente == 2) {
-            nuevoCliente = new ClientePremium(email, nombre, domicilio, nif);
-        } else { // Lanzamos excepción si el tipo no es válido
-            throw new TipoClienteInvalidoException(tipoCliente);
-        }
-
-        // 3. Guardar cliente
-        datos.anadirCliente(nuevoCliente);
-        return nuevoCliente;
-    }
-
-    /**
-     * Elimina un cliente del sistema por su email.
-     *
-     * @param email Email del cliente a eliminar
-     * @return true si el cliente se eliminó correctamente
-     * @throws EmailInvalidoException Si el email no tiene un formato válido
-     * @throws RecursoNoEncontradoException Si no existe un cliente con ese email
-     */
-    public boolean eliminarCliente(String email) throws RecursoNoEncontradoException, EmailInvalidoException {
-        emailValido(email); // Validar email, puede lanzar EmailInvalidoException
-        Cliente cliente = buscarCliente(email); // Si no existe, lanza excepción
-        return datos.eliminarCliente(email);
-    }
-
-    /**
-     * Busca un cliente por su email.
-     *
-     * @param email Email del cliente a buscar
-     * @return El objeto Cliente si existe
-     * @throws RecursoNoEncontradoException Si no existe un cliente con ese email
-     */
-    public Cliente buscarCliente(String email)
-            throws EmailInvalidoException, RecursoNoEncontradoException {
-
-        emailValido(email);  // Lanza exception si es inválido
-
-        // Buscar en datos
-        Cliente cliente = datos.buscarCliente(email);
-        if (cliente == null) {
-            throw new RecursoNoEncontradoException("Cliente", email);
-        }
-        return cliente;
-    }
-
-    /**
-     * Obtiene una lista con todos los clientes.
-     *
-     * @return Lista de todos los clientes
-     */
-    public List<Cliente> obtenerTodosClientes() {
-        return datos.obtenerTodosClientes();
-    }
-
-    /**
-     * Obtiene una lista con todos los clientes de tipo Estándar.
-     *
-     * @return Lista de clientes estándar
-     */
-    public List<Cliente> obtenerClientesEstandar() {
-        return datos.obtenerClientesEstandar();
-    }
-
-    /**
-     * Obtiene una lista con todos los clientes de tipo Premium.
-     *
-     * @return Lista de clientes premium
-     */
-    public List<Cliente> obtenerClientesPremium() {
-        return datos.obtenerClientesPremium();
+    public List<Articulo> obtenerTodosArticulos() throws DAOException {
+        return articuloDAO.obtenerTodos();
     }
 }

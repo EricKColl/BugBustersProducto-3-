@@ -1,6 +1,7 @@
 package Vista;
 
 import Controlador.Controlador;
+import Excepciones.DAOException;
 import Modelo.Articulo;
 import Modelo.Cliente;
 import Modelo.Pedido;
@@ -128,6 +129,9 @@ public class Vista {
             TerminalUI.error("Ya existe un artículo con código: " + codigo);
             return;
         } catch (RecursoNoEncontradoException e) {
+        } catch (DAOException e) {
+            TerminalUI.error("Error de base de datos al comprobar el artículo: " + e.getMessage());
+            return;
         }
 
         String descripcion = leerTextoNoVacio("Descripción: ");
@@ -140,6 +144,8 @@ public class Vista {
             TerminalUI.success("Artículo añadido correctamente.");
         } catch (YaExisteException e) {
             TerminalUI.exception(e.getMessage());
+        } catch (DAOException e) {
+            TerminalUI.error("Fallo crítico al guardar en MySQL: " + e.getMessage());
         }
         TerminalUI.sciFiDivider();
     }
@@ -150,12 +156,18 @@ public class Vista {
      */
     private void mostrarArticulos() {
         TerminalUI.sectionTitle("LISTADO DE ARTÍCULOS");
-        TerminalUI.showArticlesTable(controlador.obtenerTodosArticulos());
-    }
 
-    /* =========================================================
+        try {
+            TerminalUI.showArticlesTable(controlador.obtenerTodosArticulos());
+
+        } catch (DAOException e) {
+            TerminalUI.error("Error al conectar con la base de datos para obtener el listado: " + e.getMessage());
+        }
+    }
+/* =========================================================
        ================= MENÚ DE CLIENTES =====================
        ========================================================= */
+
     /**
      * Gestiona el submenú de clientes.
      * Permite añadir, buscar, mostrar y eliminar clientes.
@@ -307,6 +319,7 @@ public class Vista {
             TerminalUI.exception(e.getMessage());
         }
     }
+
 
     /* =========================================================
         ================= MENÚ DE PEDIDOS =====================
