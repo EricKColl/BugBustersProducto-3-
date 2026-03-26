@@ -1,14 +1,17 @@
 package Factory;
 
+import Excepciones.DAOException;
 import DAO.Interfaces.PedidoDAO;
-// import DAO.Interfaces.ArticuloDAO;
+import DAO.Interfaces.ArticuloDAO;
 // import DAO.Interfaces.ClienteDAO;
 
 public abstract class DAOFactory {
 
+    /*Si usamos esta opción obliga al Coordinador a ser consciente de que Base de datos usamos, pierde un poco de consistencia el MVC
+    Por otro lado es flexible si queremos poder cambiar entre bases de datos si tenemos la app abierta.
     public static final int MYSQL = 1;
 
-    // --- MÉTODOS PARA OBTENER LOS DAOs ---
+        // --- MÉTODOS PARA OBTENER LOS DAOs ---
 
     public abstract PedidoDAO getPedidoDAO();
 
@@ -20,5 +23,21 @@ public abstract class DAOFactory {
             default:
                 return null;
         }
+
+     */
+    //Opción sin que Controlador tenga que saber que tipo de Base de datos usamos
+    //Queremos una fábrica para toda la app
+    private static DAOFactory instancia;
+
+    //Método para obtener la fábrica
+    public static DAOFactory getDAOFactory() {
+        if (instancia == null) {
+            //Indicamos que base de datos usamos
+            instancia = new MySQLDAOFactory();
+        }
+        return instancia;
     }
+    // --- MÉTODOS PARA OBTENER LOS DAOs ---
+    public abstract PedidoDAO getPedidoDAO();
+    public abstract ArticuloDAO getArticuloDAO() throws DAOException;
 }

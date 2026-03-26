@@ -1,13 +1,30 @@
 package Factory;
 
+import DAO.Interfaces.ArticuloDAO;
+import DAO.MySQL.ArticuloDAOMySQL;
+import Excepciones.DAOException;
 import DAO.Interfaces.PedidoDAO;
 import DAO.MySQL.PedidoDAOMySQL;
+import Util.ConexionBD;
 
 public class MySQLDAOFactory extends DAOFactory {
 
     @Override
+    public ArticuloDAO getArticuloDAO() throws DAOException {
+        // Pedimos la instancia única de ConexionBD
+        ConexionBD con = ConexionBD.getInstancia();
+
+        //Nos aseguramos que esté la base de datos conectada.
+        con.conectar();
+
+        // Construimos el DAO de MySQL y le inyectamos la conexión abierta
+        return new ArticuloDAOMySQL(con.getConexion());
+    }
+    @Override
     public PedidoDAO getPedidoDAO() {
-        return new PedidoDAOMySQL();
+        ConexionBD con = ConexionBD.getInstancia();
+        con.conectar();
+        return new PedidoDAOMySQL(con.getConexion());
     }
 
 }

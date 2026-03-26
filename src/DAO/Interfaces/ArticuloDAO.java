@@ -4,15 +4,6 @@ import Modelo.Articulo;
 import Excepciones.DAOException;
 import java.util.List;
 
-public interface ArticuloDAO {
+public interface ArticuloDAO extends GenericoDAO<Articulo, String>{
 
-    void insertar(Articulo articulo) throws DAOException;
-
-    Articulo obtenerPorId(int id) throws DAOException;
-
-    List<Articulo> obtenerTodos() throws DAOException;
-
-    void actualizar(Articulo articulo) throws DAOException;
-
-    void eliminar(int id) throws DAOException;
 }
