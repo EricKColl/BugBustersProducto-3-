@@ -4,17 +4,12 @@ import Modelo.Cliente;
 import Excepciones.DAOException;
 import java.util.List;
 
-public interface ClienteDAO {
+public interface ClienteDAO extends GenericoDAO<Cliente, Integer> {
 
-    void insertar(Cliente cliente) throws DAOException;
+    List<Cliente> obtenerClientesEstandar();
 
-    Cliente obtenerPorId(int id) throws DAOException;
+    List<Cliente> obtenerClientesPremium();
 
+    boolean existePorEmail(String email) throws DAOException;
     Cliente obtenerPorEmail(String email) throws DAOException;
-
-    List<Cliente> obtenerTodos() throws DAOException;
-
-    void actualizar(Cliente cliente) throws DAOException;
-
-    void eliminar(int id) throws DAOException;
 }

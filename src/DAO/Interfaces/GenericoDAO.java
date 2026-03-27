@@ -9,6 +9,9 @@ public interface GenericoDAO<T, K> {
     void insertar(T entidad) throws DAOException;
     List<T> obtenerTodos() throws DAOException;
     T obtenerPorId(K id) throws DAOException;
+    T buscar(K clave);
+    boolean existe(K clave);
+    void eliminar(K clave);
 
     // Añadir el resto de métodos CRUD más adelante:
 

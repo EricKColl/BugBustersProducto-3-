@@ -6,6 +6,8 @@ import Excepciones.DAOException;
 import DAO.Interfaces.PedidoDAO;
 import DAO.MySQL.PedidoDAOMySQL;
 import Util.ConexionBD;
+import DAO.Interfaces.ClienteDAO;
+import DAO.MySQL.ClienteDAOMySQL;
 
 public class MySQLDAOFactory extends DAOFactory {
 
@@ -20,11 +22,19 @@ public class MySQLDAOFactory extends DAOFactory {
         // Construimos el DAO de MySQL y le inyectamos la conexión abierta
         return new ArticuloDAOMySQL(con.getConexion());
     }
+
     @Override
     public PedidoDAO getPedidoDAO() {
         ConexionBD con = ConexionBD.getInstancia();
         con.conectar();
         return new PedidoDAOMySQL(con.getConexion());
+    }
+
+    @Override
+    public ClienteDAO getClienteDAO() throws DAOException {
+        ConexionBD con = ConexionBD.getInstancia();
+        con.conectar();
+        return new ClienteDAOMySQL(con.getConexion());
     }
 
 }
