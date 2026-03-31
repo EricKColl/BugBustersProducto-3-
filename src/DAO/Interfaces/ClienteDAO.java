@@ -4,7 +4,7 @@ import Modelo.Cliente;
 import Excepciones.DAOException;
 import java.util.List;
 
-public interface ClienteDAO extends GenericoDAO<Cliente, Integer> {
+public interface ClienteDAO extends GenericoDAO<Cliente, String> {
 
     List<Cliente> obtenerClientesEstandar();
 

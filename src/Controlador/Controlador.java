@@ -78,12 +78,8 @@ public class Controlador {
     }
 
     public void eliminarPedido(int idPedido) {
-        try {
-            pedidoDAO.eliminar(idPedido);
-            System.out.println("El pedido " + idPedido + " ha sido cancelado y eliminado con éxito.");
-        } catch (DAOException e) {
-            System.err.println("❌ " + e.getMessage());
-        }
+        pedidoDAO.eliminar(idPedido);
+        System.out.println("El pedido " + idPedido + " ha sido cancelado y eliminado con éxito.");
     }
 
     public void mostrarPedidosPendientes(int idCliente) {

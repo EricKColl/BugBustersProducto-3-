@@ -24,7 +24,7 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
     @Override
     public void insertar(Articulo articulo) throws DAOException {
         // Usamos ? en lugar de concatenar strings. Esto evita la "Inyección SQL" (hackeos).
-        String sql = "INSERT INTO articulos (codigo, descripcion, precioVenta, gastosEnvio, tiempoPreparacionMin) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO articulos (codigo, descripcion, precio_venta, gastos_envio, tiempo_preparacion) VALUES (?, ?, ?, ?, ?)";
 
         // Usamos try-catch para que cierre PreparedStatement automáticamente
         try (PreparedStatement stat = conexion.prepareStatement(sql)) {
@@ -53,7 +53,7 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
     @Override
     public List<Articulo> obtenerTodos() throws DAOException {
         List<Articulo> listaArticulos = new ArrayList<>();
-        String sql = "SELECT codigo, descripcion, precioVenta, gastosEnvio, tiempoPreparacionMin FROM articulos";
+        String sql = "SELECT codigo, descripcion, precio_venta, gastos_envio, tiempo_preparacion FROM articulos";
 
         try (PreparedStatement stat = conexion.prepareStatement(sql);
              ResultSet rs = stat.executeQuery()) { // executeQuery() se usa SOLO para SELECT
@@ -63,9 +63,9 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
                 // Extraemos los datos de la fila actual...
                 String codigo = rs.getString("codigo");
                 String descripcion = rs.getString("descripcion");
-                double precioVenta = rs.getDouble("precioVenta");
-                double gastosEnvio = rs.getDouble("gastosEnvio");
-                int tiemposPreparacionMin = rs.getInt("tiemposPreparaciónMin");
+                double precioVenta = rs.getDouble("precio_venta");
+                double gastosEnvio = rs.getDouble("gastos_envio");
+                int tiemposPreparacionMin = rs.getInt("tiempo_preparacion");
 
                 // Creamos un objeto Articulo de nuestro Modelo
                 Articulo a = new Articulo(codigo, descripcion, precioVenta, gastosEnvio, tiemposPreparacionMin);
@@ -96,9 +96,9 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
                     articuloEncontrado = new Articulo(
                             rs.getString("codigo"),
                             rs.getString("descripcion"),
-                            rs.getDouble("precioVenta"),
-                            rs.getDouble("gastosEnvio"),
-                            rs.getInt("tiemposPreparaciónMin")
+                            rs.getDouble("precio_venta"),
+                            rs.getDouble("gastos_envio"),
+                            rs.getInt("tiempo_preparacion")
                     );
                 }
             }
@@ -109,6 +109,11 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
 
         // Devolvemos el artículo (o null si el if fue falso y no se encontró nada)
         return articuloEncontrado;
+    }
+
+    @Override
+    public void eliminar(String codigo) {
+
     }
 
 

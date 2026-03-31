@@ -39,7 +39,7 @@ public abstract class DAOFactory {
         return instancia;
     }
     // --- MÉTODOS PARA OBTENER LOS DAOs ---
-    public abstract PedidoDAO getPedidoDAO();
+    public abstract PedidoDAO getPedidoDAO() throws DAOException;
     public abstract ArticuloDAO getArticuloDAO() throws DAOException;
     public abstract ClienteDAO getClienteDAO() throws DAOException;
 }

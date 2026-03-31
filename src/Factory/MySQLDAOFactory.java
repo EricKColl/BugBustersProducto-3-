@@ -24,7 +24,7 @@ public class MySQLDAOFactory extends DAOFactory {
     }
 
     @Override
-    public PedidoDAO getPedidoDAO() {
+    public PedidoDAO getPedidoDAO() throws DAOException{
         ConexionBD con = ConexionBD.getInstancia();
         con.conectar();
         return new PedidoDAOMySQL(con.getConexion());
