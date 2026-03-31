@@ -1,20 +1,20 @@
 package Controlador;
 
-import DAO.Interfaces.PedidoDAO;
-import DAO.Interfaces.ClienteDAO;
 import DAO.Interfaces.ArticuloDAO;
+import DAO.Interfaces.ClienteDAO;
+import DAO.Interfaces.PedidoDAO;
 import Factory.DAOFactory;
-import Modelo.Pedido;
-import Modelo.Cliente;
 import Modelo.Articulo;
+import Modelo.Cliente;
 import Modelo.ClienteEstandar;
 import Modelo.ClientePremium;
+import Modelo.Pedido;
 import Excepciones.DAOException;
 import Modelo.Excepciones.*;
-import java.util.List;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.time.LocalDateTime;
 
 /**
  * Clase Controlador que actúa como puente entre la Vista y el Modelo.
@@ -68,89 +68,107 @@ public class Controlador {
     // MÉTODOS DE GESTIÓN DE PEDIDOS
     // ==========================================
 
-    public void añadirPedido(Pedido pedido) {
-        try {
-            pedidoDAO.insertar(pedido);
-            System.out.println("Pedido guardado correctamente en la base de datos.");
-        } catch (DAOException e) {
-            System.err.println("Error al guardar el pedido: " + e.getMessage());
+    /**
+     * Añade un nuevo pedido al sistema validando la existencia del cliente y el artículo.
+     * * @param email Email del cliente que realiza el pedido.
+     * @param codigoArticulo Código del artículo solicitado.
+     * @param cantidad Cantidad de unidades del artículo.
+     * @return El objeto Pedido recién creado y persistido.
+     */
+    public Pedido anadirPedido(String email, String codigoArticulo, int cantidad)
+            throws DAOException, RecursoNoEncontradoException, EmailInvalidoException {
+
+        emailValido(email);
+
+        Cliente cliente = clienteDAO.obtenerPorEmail(email);
+        if (cliente == null) {
+            throw new RecursoNoEncontradoException("Cliente", email);
         }
+
+        Articulo articulo = articuloDAO.obtenerPorId(codigoArticulo);
+        if (articulo == null) {
+            throw new RecursoNoEncontradoException("Artículo", codigoArticulo);
+        }
+
+        // El ID es 0 porque la base de datos (MySQL) se encarga del autoincremento
+        Pedido nuevoPedido = new Pedido(0, cliente, articulo, cantidad, LocalDateTime.now(), "PENDIENTE");
+        pedidoDAO.insertar(nuevoPedido);
+
+        return nuevoPedido;
     }
 
-    public void eliminarPedido(int idPedido) {
+    /**
+     * Elimina (cancela) un pedido del sistema si las reglas de negocio lo permiten.
+     * * @param idPedido Identificador único del pedido.
+     */
+    public void eliminarPedido(int idPedido) throws DAOException, RecursoNoEncontradoException, PedidoNoCancelableException {
+        Pedido pedido = pedidoDAO.obtenerPorId(idPedido);
+
+        if (pedido == null) {
+            throw new RecursoNoEncontradoException("Pedido", String.valueOf(idPedido));
+        }
+
+        if (!pedido.puedeCancelar()) {
+            throw new PedidoNoCancelableException(idPedido);
+        }
+
         pedidoDAO.eliminar(idPedido);
-        System.out.println("El pedido " + idPedido + " ha sido cancelado y eliminado con éxito.");
     }
 
-    public void mostrarPedidosPendientes(int idCliente) {
-        try {
-            List<Pedido> pendientes = pedidoDAO.obtenerPedidosPendientes(idCliente);
-            if (pendientes.isEmpty()) {
-                System.out.println("No hay pedidos pendientes de envío.");
-            } else {
-                System.out.println("\n--- PEDIDOS PENDIENTES ---");
-                for (Pedido p : pendientes) {
-                    double total = calcularTotalPedido(p);
-                    System.out.println(p.toString() + "TOTAL a pagar: " + String.format("%.2f", total) + "€");
-                }
+    /**
+     * Obtiene la lista de pedidos pendientes, opcionalmente filtrada por cliente.
+     * * @param email Filtro de email (String). Si es nulo o vacío, devuelve todos.
+     * @return Lista de objetos Pedido pendientes.
+     */
+    public List<Pedido> obtenerPedidosPendientes(String email) throws DAOException, RecursoNoEncontradoException, EmailInvalidoException {
+        int idFiltro = 0; // 0 indica que no hay filtro aplicado (trae todos)
+
+        if (email != null && !email.trim().isEmpty()) {
+            emailValido(email);
+            Cliente c = buscarCliente(email);
+
+            try {
+                idFiltro = Integer.parseInt(c.getNif());
+            } catch (NumberFormatException e) {
+                throw new DAOException(
+                        "Error interno: El NIF/ID del cliente no tiene un formato numérico válido.",
+                        new java.sql.SQLException("Formato NIF incorrecto: " + e.getMessage())
+                );
             }
-        } catch (DAOException e) {
-            System.err.println("❌ Error al recuperar los pedidos pendientes: " + e.getMessage());
-        }
-    }
-
-    public void mostrarPedidosEnviados(int idCliente) {
-        try {
-            List<Pedido> enviados = pedidoDAO.obtenerPedidosEnviados(idCliente);
-            if (enviados.isEmpty()) {
-                System.out.println("No hay pedidos enviados.");
-            } else {
-                System.out.println("\n--- PEDIDOS ENVIADOS ---");
-                for (Pedido p : enviados) {
-                    double total = calcularTotalPedido(p);
-                    System.out.println(p.toString() + "TOTAL pagado: " + String.format("%.2f", total) + "€");
-                }
-            }
-        } catch (DAOException e) {
-            System.err.println("❌ Error al recuperar los pedidos enviados: " + e.getMessage());
-        }
-    }
-
-    // ==========================================
-    // LÓGICA DE NEGOCIO (Descuentos y Totales)
-    // ==========================================
-
-    private double calcularTotalPedido(Pedido pedido) {
-        double total = 0.0;
-
-        try {
-            Articulo articulo = articuloDAO.obtenerPorId(pedido.getIdArticulo());
-            Cliente cliente = clienteDAO.obtenerPorId(pedido.getIdCliente());
-
-            if (articulo != null && cliente != null) {
-                double costeArticulos = articulo.getPrecioVenta() * pedido.getCantidad();
-                double gastosEnvio = articulo.getGastosEnvio();
-
-
-                if (cliente instanceof ClientePremium) {
-                    gastosEnvio = gastosEnvio * 0.80;
-                }
-
-
-                total = costeArticulos + gastosEnvio;
-            }
-        } catch (DAOException e) {
-            System.err.println("❌ Error al obtener datos para calcular el total: " + e.getMessage());
         }
 
-        return total;
+        return pedidoDAO.obtenerPedidosPendientes(idFiltro);
     }
 
+    /**
+     * Obtiene la lista de pedidos ya enviados, opcionalmente filtrada por cliente.
+     * * @param email Filtro de email (String). Si es nulo o vacío, devuelve todos.
+     * @return Lista de objetos Pedido enviados.
+     */
+    public List<Pedido> obtenerPedidosEnviados(String email) throws DAOException, RecursoNoEncontradoException, EmailInvalidoException {
+        int idFiltro = 0;
+
+        if (email != null && !email.trim().isEmpty()) {
+            emailValido(email);
+            Cliente c = buscarCliente(email);
+
+            try {
+                idFiltro = Integer.parseInt(c.getNif());
+            } catch (NumberFormatException e) {
+                throw new DAOException(
+                        "Error interno: El NIF/ID del cliente no tiene un formato numérico válido.",
+                        new java.sql.SQLException("Formato NIF incorrecto: " + e.getMessage())
+                );
+            }
+        }
+
+        return pedidoDAO.obtenerPedidosEnviados(idFiltro);
+    }
     // ==========================================
     // MÉTODOS DE GESTIÓN DE CLIENTES
     // ==========================================
 
-    public void anadirCliente(String email, String nombre, String domicilio, String nif, int tipoCliente)
+    public Cliente anadirCliente(String email, String nombre, String domicilio, String nif, int tipoCliente)
             throws YaExisteException, DAOException, TipoClienteInvalidoException {
 
         // 1. ¡CAMBIO AQUÍ! Usamos el nuevo método específico para email
@@ -171,6 +189,8 @@ public class Controlador {
         // 3. Lo guardamos en la base de datos
         // Esto funciona porque el ID es AUTO_INCREMENT en MySQL y el objeto cliente tiene los datos
         clienteDAO.insertar(nuevoCliente);
+
+        return nuevoCliente;
     }
 
     public List<Cliente> obtenerTodosClientes() throws DAOException {
@@ -210,15 +230,14 @@ public class Controlador {
         // 1. Validamos formato
         emailValido(email);
 
-        // 2. Buscamos al cliente para obtener su ID (o verificar existencia)
+        // 2. Buscamos al cliente para obtener su ID y verificar su existencia
         Cliente cliente = clienteDAO.obtenerPorEmail(email);
         if (cliente == null) {
             throw new RecursoNoEncontradoException("cliente", email);
         }
 
-        // 3. Borramos usando el email (o el ID si tu DAO está configurado así)
-        // Suponiendo que tu DAO tiene un método borrarPorEmail o similar
-        clienteDAO.eliminar(email);
+        // 3. Extraemos su ID numérico y usamos el método genérico que pide un Integer
+        clienteDAO.eliminar(cliente.getIdCliente());
     }
 
 /* =========================================================

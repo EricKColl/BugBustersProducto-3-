@@ -346,22 +346,26 @@ public final class TerminalUI {
         System.out.println(color("├────────┼──────────────────────┼──────────────────────────┼──────────┼──────────────────┼────────────┼──────────────┤", ELECTRIC));
 
         for (Pedido p : orders) {
-            String state = p.puedeCancelar() ? "Pendiente" : "Enviado";
+            String nombreCliente = p.getCliente().getNombre();
+            String descArticulo = p.getArticulo().getDescripcion();
+            String fechaFormateada = p.getFechaHora().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+
+            double total = p.calcularTotal();
 
             System.out.println(color("│", ELECTRIC)
                     + padCell(String.valueOf(p.getNumeroPedido()), 8)
                     + color("│", ELECTRIC)
-                    + padCell(truncate(p.getCliente().getNombre(), 22), 22)
+                    + padCell(truncate(nombreCliente, 22), 22)
                     + color("│", ELECTRIC)
-                    + padCell(truncate(p.getArticulo().getDescripcion(), 26), 26)
+                    + padCell(truncate(descArticulo, 26), 26)
                     + color("│", ELECTRIC)
                     + padCell(String.valueOf(p.getCantidad()), 10)
                     + color("│", ELECTRIC)
-                    + padCell(p.getFechaHora().format(formatter), 18)
+                    + padCell(fechaFormateada, 18)
                     + color("│", ELECTRIC)
-                    + padCell(money(p.calcularTotal()), 12)
+                    + padCell(money(total), 12)
                     + color("│", ELECTRIC)
-                    + padCell(state, 14)
+                    + padCell(p.puedeCancelar() ? "Pendiente" : "Enviado", 14)
                     + color("│", ELECTRIC));
         }
 
