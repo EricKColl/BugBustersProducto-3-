@@ -391,20 +391,22 @@ public class Vista {
         TerminalUI.sectionTitle("AÑADIR PEDIDO");
         String emailCliente = leerTextoNoVacio("Email del cliente: ");
 
-        // Validar formato del email
+        // 1. Validar formato del email (AQUÍ ES DONDE SE ATRAPA EL ERROR CORRECTAMENTE)
         try {
             controlador.emailValido(emailCliente);
         } catch (EmailInvalidoException e) {
             TerminalUI.exception(e.getMessage());
             return;
         }
+
         Cliente cliente = null;
-        // Busca cliente para comprobar si existe
+
+        // 2. Busca cliente para comprobar si existe
         try {
             cliente = controlador.buscarCliente(emailCliente);
             TerminalUI.info("Cliente encontrado: " + cliente.getNombre());
 
-        } catch (EmailInvalidoException e) {  // Si el email es inválido
+        } catch (EmailInvalidoException | DAOException e) {  // <--- ¡Volvemos a poner EmailInvalidoException aquí!
             TerminalUI.exception(e.getMessage());
             return;
 
@@ -422,7 +424,9 @@ public class Vista {
                 try {
                     cliente = controlador.anadirCliente(emailCliente, nombre, domicilio, nif, tipo);
                     TerminalUI.success("Cliente creado correctamente.\n");
-                } catch (EmailInvalidoException | TipoClienteInvalidoException | YaExisteException ex) {
+
+                    // 👇 AQUÍ TAMBIÉN QUITAMOS EL EmailInvalidoException
+                } catch (TipoClienteInvalidoException | YaExisteException | DAOException ex) {
                     TerminalUI.exception(ex.getMessage());
                     return;
                 }
@@ -439,7 +443,7 @@ public class Vista {
         try {
             articulo = controlador.buscarArticulo(codigoArticulo);
             TerminalUI.showArticleCard(articulo);
-        } catch (RecursoNoEncontradoException e) {
+        } catch (RecursoNoEncontradoException | DAOException e) {
             TerminalUI.exception(e.getMessage());
             return;
         }
@@ -450,13 +454,12 @@ public class Vista {
         // Crear pedido
         try {
             Pedido pedido = controlador.anadirPedido(emailCliente, codigoArticulo, cantidad);
-
             TerminalUI.success("Pedido creado correctamente para " + cliente.getNombre() + ".");
             TerminalUI.info("Tiempo estimado: " + tiempoTotal + " minutos");
             TerminalUI.showOrderCard(pedido);
             TerminalUI.spotlight("OPERACIÓN COMPLETADA CON ÉXITO");
 
-        } catch (EmailInvalidoException | RecursoNoEncontradoException e) {
+        } catch (EmailInvalidoException | RecursoNoEncontradoException | DAOException e) { // <-- AÑADE DAOException AQUÍ
             TerminalUI.exception(e.getMessage());
         }
     }
@@ -473,7 +476,7 @@ public class Vista {
             controlador.eliminarPedido(numeroPedido);
             TerminalUI.success("Pedido eliminado correctamente.");
             TerminalUI.spotlight("PEDIDO CANCELADO");
-        } catch (RecursoNoEncontradoException | PedidoNoCancelableException e) {
+        } catch (RecursoNoEncontradoException | PedidoNoCancelableException | DAOException e) { // <-- AÑADE DAOException AQUÍ
             TerminalUI.exception(e.getMessage());
         }
     }
@@ -488,12 +491,12 @@ public class Vista {
         try {
             List<Pedido> pedidos = controlador.obtenerPedidosPendientes(emailFiltro);
 
-            if (pedidos.isEmpty()) { // Si la lista está vacía se informa que no hay pedidos
+            if (pedidos.isEmpty()) {
                 TerminalUI.empty("No hay pedidos pendientes que mostrar.");
             } else {
                 TerminalUI.showOrdersTable(pedidos);
             }
-        } catch (EmailInvalidoException | RecursoNoEncontradoException e) {
+        } catch (EmailInvalidoException | RecursoNoEncontradoException | DAOException e) { // <-- AÑADE DAOException AQUÍ
             TerminalUI.exception(e.getMessage());
         }
     }
@@ -507,13 +510,13 @@ public class Vista {
         try {
             List<Pedido> pedidos = controlador.obtenerPedidosEnviados(emailFiltro);
 
-            if (pedidos.isEmpty()) { // Si la lista está vacía se informa que no hay pedidos
+            if (pedidos.isEmpty()) {
                 TerminalUI.empty("No hay pedidos enviados que mostrar.");
             } else {
                 TerminalUI.showOrdersTable(pedidos);
             }
 
-        } catch (EmailInvalidoException | RecursoNoEncontradoException e) { // Se lanza si no existe el cliente
+        } catch (EmailInvalidoException | RecursoNoEncontradoException | DAOException e) { // <-- AÑADE DAOException AQUÍ
             TerminalUI.exception(e.getMessage());
         }
     }

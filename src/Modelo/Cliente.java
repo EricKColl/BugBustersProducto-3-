@@ -16,6 +16,7 @@ public abstract class Cliente {
     private String nombre;
     private String domicilio;
     private String nif;
+    private int idCliente;
 
     public Cliente (String email, String nombre, String domicilio, String nif){
         this.email = email;
@@ -56,6 +57,12 @@ public abstract class Cliente {
         this.nif = nif;
     }
 
+    public int getIdCliente() {
+        return idCliente;
+    }
+    public void setIdCliente(int idCliente) {
+        this.idCliente = idCliente;
+    }
     public abstract double calcularCuota();
     public abstract double descuentoEnvio();
 

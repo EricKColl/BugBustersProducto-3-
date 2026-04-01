@@ -27,14 +27,20 @@ public class ClienteDAOMySQL implements ClienteDAO {
         String nif = rs.getString("nif");
         String tipo = rs.getString("tipo_cliente"); // 'estandar' o 'premium'
 
+        Cliente cliente;
+
         // 2. Dependiendo de lo que diga la columna 'tipo_cliente', creamos un hijo u otro
         if ("premium".equalsIgnoreCase(tipo)) {
-            return new ClientePremium(email, nombre, domicilio, nif);
+            cliente = new ClientePremium(email, nombre, domicilio, nif);
         } else {
-            return new ClienteEstandar(email, nombre, domicilio, nif);
+            cliente = new ClienteEstandar(email, nombre, domicilio, nif);
         }
-    }
 
+        // 3. Inyectamos la clave primaria real de la base de datos
+        cliente.setIdCliente(id);
+
+        return cliente;
+    }
     @Override
     public List<Cliente> obtenerClientesEstandar() {
         List<Cliente> lista = new ArrayList<>();
@@ -118,16 +124,8 @@ public class ClienteDAOMySQL implements ClienteDAO {
         return null;
     }
 
-    @Override
-    public Cliente buscar(Integer idCliente) {
-        try {
-            return obtenerPorId(idCliente);
-        } catch (DAOException e) {
-            return null;
-        }
-    }
 
-    @Override
+
     public boolean existe(Integer idCliente) {
         String sql = "SELECT 1 FROM clientes WHERE id_cliente = ?"; // Cambiado a id_cliente
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
