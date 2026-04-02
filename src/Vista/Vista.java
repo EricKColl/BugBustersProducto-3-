@@ -224,7 +224,6 @@ public class Vista {
         TerminalUI.sectionTitle("AÑADIR CLIENTE");
         String email = leerTextoNoVacio("Email: ");
 
-        // 1. Validar formato del email (Llama al método que añadimos arriba)
         try {
             controlador.emailValido(email);
         } catch (EmailInvalidoException e) {
@@ -232,22 +231,18 @@ public class Vista {
             return;
         }
 
-        // 2. Pedimos el resto de datos directamente
         String nombre = leerTextoNoVacio("Nombre: ");
         String domicilio = leerTextoNoVacio("Domicilio: ");
         String nif = leerTextoNoVacio("NIF: ");
-        int tipoCliente = leerEntero("Tipo de cliente (1- Estándar, 2- Premium): ");
+        int tipoCliente = leerEntero("Tipo de cliente (1- Estándar, 2- Premium): "); // <--- Se llama tipoCliente
 
-        // 3. Dejamos que el controlador valide su existencia e insertar
         try {
-            controlador.anadirCliente(email, nombre, domicilio, nif, tipoCliente);
-            TerminalUI.success("Cliente añadido correctamente.");
-        } catch (YaExisteException e) {
-            TerminalUI.exception("Error: El email " + email + " ya está registrado.");
-        } catch (TipoClienteInvalidoException | DAOException e) {
-            TerminalUI.exception(e.getMessage());
+            // Llamamos al método
+            controlador.anadirCliente(email, nombre, domicilio, nif, tipoCliente); // <--- Usamos tipoCliente
+            TerminalUI.success("¡Cliente añadido correctamente!");
+        } catch (Exception e) {
+            TerminalUI.error("No se pudo añadir: " + e.getMessage());
         }
-
         TerminalUI.sciFiDivider();
     }
 
@@ -391,7 +386,7 @@ public class Vista {
         TerminalUI.sectionTitle("AÑADIR PEDIDO");
         String emailCliente = leerTextoNoVacio("Email del cliente: ");
 
-        // 1. Validar formato del email (AQUÍ ES DONDE SE ATRAPA EL ERROR CORRECTAMENTE)
+        // 1. Validar formato del email
         try {
             controlador.emailValido(emailCliente);
         } catch (EmailInvalidoException e) {
@@ -406,7 +401,7 @@ public class Vista {
             cliente = controlador.buscarCliente(emailCliente);
             TerminalUI.info("Cliente encontrado: " + cliente.getNombre());
 
-        } catch (EmailInvalidoException | DAOException e) {  // <--- ¡Volvemos a poner EmailInvalidoException aquí!
+        } catch (EmailInvalidoException | DAOException e) {  //
             TerminalUI.exception(e.getMessage());
             return;
 
@@ -419,14 +414,14 @@ public class Vista {
                 String nombre = leerTextoNoVacio("Nombre: ");
                 String domicilio = leerTextoNoVacio("Domicilio: ");
                 String nif = leerTextoNoVacio("NIF: ");
-                int tipo = leerEntero("Tipo cliente (1-Estándar, 2-Premium): ");
+                int tipoSeleccionado = leerEntero("Tipo cliente (1-Estándar, 2-Premium): ");
 
                 try {
-                    cliente = controlador.anadirCliente(emailCliente, nombre, domicilio, nif, tipo);
-                    TerminalUI.success("Cliente creado correctamente.\n");
-
-                    // 👇 AQUÍ TAMBIÉN QUITAMOS EL EmailInvalidoException
-                } catch (TipoClienteInvalidoException | YaExisteException | DAOException ex) {
+                    // El controlador lo crea y  lo devuelve ya listo con su ID
+                    cliente = controlador.anadirCliente(emailCliente, nombre, domicilio, nif, tipoSeleccionado);
+                    TerminalUI.success("Cliente creado correctamente.");
+                    // Ya no necesitas volver a llamar a buscarCliente() aquí.
+                } catch (TipoClienteInvalidoException | YaExisteException | DAOException | EmailInvalidoException ex) {
                     TerminalUI.exception(ex.getMessage());
                     return;
                 }

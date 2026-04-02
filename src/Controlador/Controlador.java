@@ -121,19 +121,16 @@ public class Controlador {
      * @return Lista de objetos Pedido pendientes.
      */
     public List<Pedido> obtenerPedidosPendientes(String email) throws DAOException, RecursoNoEncontradoException, EmailInvalidoException {
-        int idFiltro = 0; // 0 indica que no hay filtro aplicado (trae todos)
+        int idFiltro = 0;
 
         if (email != null && !email.trim().isEmpty()) {
             emailValido(email);
             Cliente c = buscarCliente(email);
 
-            try {
-                idFiltro = Integer.parseInt(c.getNif());
-            } catch (NumberFormatException e) {
-                throw new DAOException(
-                        "Error interno: El NIF/ID del cliente no tiene un formato numérico válido.",
-                        new java.sql.SQLException("Formato NIF incorrecto: " + e.getMessage())
-                );
+            idFiltro = c.getIdCliente();
+
+            if (idFiltro <= 0) {
+                throw new DAOException("El cliente encontrado tiene un ID interno no válido.", null);
             }
         }
 
@@ -145,52 +142,51 @@ public class Controlador {
      * * @param email Filtro de email (String). Si es nulo o vacío, devuelve todos.
      * @return Lista de objetos Pedido enviados.
      */
-    public List<Pedido> obtenerPedidosEnviados(String email) throws DAOException, RecursoNoEncontradoException, EmailInvalidoException {
+    public List<Pedido> obtenerPedidosEnviados(String email)
+            throws DAOException, RecursoNoEncontradoException, EmailInvalidoException {
+
         int idFiltro = 0;
 
         if (email != null && !email.trim().isEmpty()) {
             emailValido(email);
-            Cliente c = buscarCliente(email);
+            Cliente c = buscarCliente(email); // buscarCliente ya lanza DAOException si hay error en BD
 
-            try {
-                idFiltro = Integer.parseInt(c.getNif());
-            } catch (NumberFormatException e) {
-                throw new DAOException(
-                        "Error interno: El NIF/ID del cliente no tiene un formato numérico válido.",
-                        new java.sql.SQLException("Formato NIF incorrecto: " + e.getMessage())
-                );
+            idFiltro = c.getIdCliente();
+
+            // Validación lógica de seguridad (opcional pero recomendada)
+            if (idFiltro <= 0) {
+                throw new DAOException("Error de integridad: El ID del cliente no es válido.", null);
             }
         }
 
+        // Si pedidoDAO falla, lanzará su propia DAOException hacia la Vista
         return pedidoDAO.obtenerPedidosEnviados(idFiltro);
     }
+
     // ==========================================
     // MÉTODOS DE GESTIÓN DE CLIENTES
     // ==========================================
 
     public Cliente anadirCliente(String email, String nombre, String domicilio, String nif, int tipoCliente)
-            throws YaExisteException, DAOException, TipoClienteInvalidoException {
+            throws EmailInvalidoException, TipoClienteInvalidoException, YaExisteException, DAOException {
 
-        // 1. ¡CAMBIO AQUÍ! Usamos el nuevo método específico para email
+        // 1. Validaciones previas
         if (clienteDAO.existePorEmail(email)) {
             throw new YaExisteException("cliente", email);
         }
 
-        // 2. Creamos el objeto cliente dependiendo del tipo
         Cliente nuevoCliente;
         if (tipoCliente == 1) {
             nuevoCliente = new ClienteEstandar(email, nombre, domicilio, nif);
-        } else if (tipoCliente == 2) {
-            nuevoCliente = new ClientePremium(email, nombre, domicilio, nif);
         } else {
-            throw new TipoClienteInvalidoException(tipoCliente);
+            nuevoCliente = new ClientePremium(email, nombre, domicilio, nif);
         }
 
-        // 3. Lo guardamos en la base de datos
-        // Esto funciona porque el ID es AUTO_INCREMENT en MySQL y el objeto cliente tiene los datos
+        // 2. Insertar
         clienteDAO.insertar(nuevoCliente);
 
-        return nuevoCliente;
+        // 3. Devolver el cliente recuperado de la DB (con su ID real)
+        return clienteDAO.obtenerPorEmail(email);
     }
 
     public List<Cliente> obtenerTodosClientes() throws DAOException {
