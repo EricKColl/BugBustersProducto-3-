@@ -74,34 +74,19 @@ public class ClienteDAOMySQL implements ClienteDAO {
 
     @Override
     public void insertar(Cliente cliente) throws DAOException {
-        String sql = "{CALL insertar_cliente(?, ?, ?, ?, ?)}";
+        String sql = "{call insertar_cliente(?, ?, ?, ?, ?)}";
+        String tipo = (cliente instanceof ClientePremium) ? "premium" : "estandar";
 
-        boolean autoCommitAnterior;
-        try {
-            autoCommitAnterior = conexion.getAutoCommit();
-            conexion.setAutoCommit(false);
+        try (CallableStatement cs = conexion.prepareCall(sql)) {
+            cs.setString(1, cliente.getEmail());
+            cs.setString(2, cliente.getNombre());
+            cs.setString(3, cliente.getDomicilio());
+            cs.setString(4, cliente.getNif());
+            cs.setString(5, tipo);
 
-            try (CallableStatement cs = conexion.prepareCall(sql)) {
-                cs.setString(1, cliente.getEmail());
-                cs.setString(2, cliente.getNombre());
-                cs.setString(3, cliente.getDomicilio());
-                cs.setString(4, cliente.getNif());
-
-                String tipo = (cliente instanceof ClientePremium) ? "premium" : "estandar";
-                cs.setString(5, tipo);
-
-                cs.executeUpdate();
-                conexion.commit();
-
-            } catch (SQLException e) {
-                conexion.rollback();
-                throw new DAOException("Error al insertar el cliente en la base de datos.", e);
-            } finally {
-                conexion.setAutoCommit(autoCommitAnterior);
-            }
-
+            cs.execute();
         } catch (SQLException e) {
-            throw new DAOException("Error crítico en la gestión de la base de datos.", e);
+            throw new DAOException("Error al insertar cliente mediante procedimiento: " + e.getMessage(), e);
         }
     }
 
@@ -109,16 +94,14 @@ public class ClienteDAOMySQL implements ClienteDAO {
     public List<Cliente> obtenerTodos() throws DAOException {
         List<Cliente> lista = new ArrayList<>();
         String sql = "SELECT * FROM clientes";
-
         try (PreparedStatement ps = conexion.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 lista.add(crearSegunTipo(rs));
             }
         } catch (SQLException e) {
-            throw new DAOException("Error al obtener todos los clientes", e);
+            throw new DAOException("Error al obtener la lista de clientes", e);
         }
-
         return lista;
     }
 
@@ -143,10 +126,8 @@ public class ClienteDAOMySQL implements ClienteDAO {
 
     private boolean tienePedidosAsociados(Integer idCliente) {
         String sql = "SELECT COUNT(*) FROM pedidos WHERE id_cliente = ?";
-
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setInt(1, idCliente);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1) > 0;
@@ -155,37 +136,23 @@ public class ClienteDAOMySQL implements ClienteDAO {
         } catch (SQLException e) {
             return true;
         }
-
         return false;
     }
 
     @Override
     public void eliminar(Integer idCliente) throws DAOException {
-        String sql = "DELETE FROM clientes WHERE id_cliente = ?";
-
-        // Validamos la lógica de negocio antes de abrir transacciones
+        // Lógica de negocio: Validamos antes de llamar al procedimiento
         if (tienePedidosAsociados(idCliente)) {
             throw new DAOException("No se puede eliminar el cliente porque tiene pedidos asociados.");
         }
 
-        boolean autoCommitAnterior = true;
-        try {
-            autoCommitAnterior = conexion.getAutoCommit();
-            conexion.setAutoCommit(false); // Iniciamos transacción
+        String sql = "{CALL eliminar_cliente(?)}";
 
-            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setInt(1, idCliente);
-                ps.executeUpdate();
-                conexion.commit(); // Confirmamos
-            } catch (SQLException e) {
-                conexion.rollback(); // Cancelamos en caso de error
-                throw new DAOException("Error al eliminar cliente con ID: " + idCliente, e);
-            } finally {
-                conexion.setAutoCommit(autoCommitAnterior); // Restauramos siempre el estado
-            }
-
+        try (CallableStatement cs = conexion.prepareCall(sql)) {
+            cs.setInt(1, idCliente);
+            cs.execute();
         } catch (SQLException e) {
-            throw new DAOException("Error al gestionar la transacción de eliminación", e);
+            throw new DAOException("Error al eliminar cliente (ID: " + idCliente + ") en la base de datos.", e);
         }
     }
 
@@ -207,19 +174,16 @@ public class ClienteDAOMySQL implements ClienteDAO {
     @Override
     public Cliente buscarPorEmail(String email) throws DAOException {
         String sql = "SELECT * FROM clientes WHERE email = ?";
-
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setString(1, email);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return crearSegunTipo(rs);
                 }
             }
         } catch (SQLException e) {
-            throw new DAOException("Error al buscar por email", e);
+            throw new DAOException("Error al buscar cliente por email", e);
         }
-
         return null;
     }
 }

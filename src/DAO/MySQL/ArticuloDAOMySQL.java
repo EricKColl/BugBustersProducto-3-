@@ -22,8 +22,7 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
 
     @Override
     public void insertar(Articulo articulo) throws DAOException {
-        // Llamada al procedimiento almacenado
-        String sql = "{call insertar_articulo(?, ?, ?, ?, ?)}";
+        String sql = "{CALL insertar_articulo(?, ?, ?, ?, ?)}";
 
         try (CallableStatement cs = conexion.prepareCall(sql)) {
             cs.setString(1, articulo.getCodigo());
@@ -109,12 +108,10 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
 
     @Override
     public void eliminar(String codigo) throws DAOException {
-        // 1. Primero comprobamos si tiene pedidos (lógica de negocio que ya tenías)
         if (tienePedidosAsociados(codigo)) {
             throw new DAOException("No se puede eliminar el artículo porque tiene pedidos asociados.");
         }
 
-        // 2. Buscamos el ID interno que corresponde a ese código para el procedimiento
         int idArticulo = -1;
         String sqlBusqueda = "SELECT id_articulo FROM articulos WHERE codigo = ?";
 
@@ -131,7 +128,6 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
             throw new DAOException("Error al buscar el ID del artículo: " + e.getMessage(), e);
         }
 
-        // 3. Llamamos al procedimiento usando el ID encontrado
         String sqlProc = "{CALL eliminar_articulo(?)}";
         try (CallableStatement cs = conexion.prepareCall(sqlProc)) {
             cs.setInt(1, idArticulo);
