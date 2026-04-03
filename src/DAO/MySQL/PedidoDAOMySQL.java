@@ -112,7 +112,7 @@ public class PedidoDAOMySQL implements PedidoDAO {
     }
 
     @Override
-    public void eliminar(Integer idPedido) {
+    public void eliminar(Integer idPedido) throws DAOException { // 1. Añadimos el throws
         String sql = "DELETE FROM pedidos WHERE id_pedido = ?";
 
         boolean autoCommitAnterior;
@@ -122,18 +122,23 @@ public class PedidoDAOMySQL implements PedidoDAO {
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
                 ps.setInt(1, idPedido);
-                ps.executeUpdate();
+                int filasAfectadas = ps.executeUpdate();
+
+                if (filasAfectadas == 0) {
+                    throw new DAOException("No se encontró el pedido con ID: " + idPedido);
+                }
+
                 conexion.commit();
 
             } catch (SQLException e) {
                 conexion.rollback();
-                System.err.println("Error al eliminar pedido: " + e.getMessage());
+                throw new DAOException("Error al eliminar el pedido de la base de datos.", e);
             } finally {
                 conexion.setAutoCommit(autoCommitAnterior);
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al gestionar la transacción al eliminar pedido: " + e.getMessage());
+            throw new DAOException("Error crítico en la gestión de la base de datos.", e);
         }
     }
 

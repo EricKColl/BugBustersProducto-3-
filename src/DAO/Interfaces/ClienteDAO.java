@@ -6,10 +6,10 @@ import java.util.List;
 
 public interface ClienteDAO extends GenericoDAO<Cliente, Integer> {
 
-    List<Cliente> obtenerClientesEstandar();
+    List<Cliente> obtenerClientesEstandar() throws DAOException;
 
-    List<Cliente> obtenerClientesPremium();
+    List<Cliente> obtenerClientesPremium() throws DAOException;
 
     boolean existePorEmail(String email) throws DAOException;
-    Cliente obtenerPorEmail(String email) throws DAOException;
+    Cliente buscarPorEmail(String email) throws DAOException;
 }

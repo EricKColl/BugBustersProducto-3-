@@ -1,9 +1,13 @@
 package Excepciones;
 
-import java.sql.SQLException;
-
 public class DAOException extends Exception {
-    public DAOException(String mensaje, SQLException e) {
+    // Se usa para errores de BD
+    public DAOException(String mensaje, Throwable causa) {
+        super(mensaje, causa);
+    }
+
+    // Se usa para poder lanzar errores personalizados (nuestras reglas)
+    public DAOException(String mensaje) {
         super(mensaje);
     }
 }

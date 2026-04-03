@@ -93,30 +93,20 @@ public class Vista {
 
     private void anadirArticulo() {
         TerminalUI.sectionTitle("AÑADIR ARTÍCULO");
-        String codigo = leerTextoNoVacio("Código: ");
 
         try {
-            controlador.buscarArticulo(codigo);
-            TerminalUI.error("Ya existe un artículo con código: " + codigo);
-            return;
-        } catch (RecursoNoEncontradoException e) {
-        } catch (DAOException e) {
-            TerminalUI.error("Error de base de datos al comprobar el artículo: " + e.getMessage());
-            return;
-        }
+            String codigo = leerTextoNoVacio("Código: ");
 
-        String descripcion = leerTextoNoVacio("Descripción: ");
-        double precioVenta = leerDouble("Precio de venta: ");
-        double gastosEnvio = leerDouble("Gastos de envío: ");
-        int tiempoPreparacionMin = leerEntero("Tiempo de preparación (minutos): ");
+            String descripcion = leerTextoNoVacio("Descripción: ");
+            double precioVenta = leerDouble("Precio de venta: ");
+            double gastosEnvio = leerDouble("Gastos de envío: ");
+            int tiempoPreparacionMin = leerEntero("Tiempo de preparación (minutos): ");
 
-        try {
             controlador.anadirArticulo(codigo, descripcion, precioVenta, gastosEnvio, tiempoPreparacionMin);
             TerminalUI.success("Artículo añadido correctamente.");
-        } catch (YaExisteException e) {
-            TerminalUI.exception(e.getMessage());
+
         } catch (DAOException e) {
-            TerminalUI.error("Fallo crítico al guardar en MySQL: " + e.getMessage());
+            TerminalUI.exception(e.getMessage());
         }
         TerminalUI.sciFiDivider();
     }
@@ -205,26 +195,25 @@ public class Vista {
 
     private void anadirCliente() {
         TerminalUI.sectionTitle("AÑADIR CLIENTE");
-        String email = leerTextoNoVacio("Email: ");
 
         try {
+            String email = leerTextoNoVacio("Email: ");
             controlador.emailValido(email);
-        } catch (EmailInvalidoException e) {
-            TerminalUI.exception("Formato de email no válido.");
-            return;
-        }
+            controlador.existeCliente(email);
 
-        String nombre = leerTextoNoVacio("Nombre: ");
-        String domicilio = leerTextoNoVacio("Domicilio: ");
-        String nif = leerTextoNoVacio("NIF: ");
-        int tipoCliente = leerEntero("Tipo de cliente (1- Estándar, 2- Premium): ");
+            String nombre = leerTextoNoVacio("Nombre: ");
+            String domicilio = leerTextoNoVacio("Domicilio: ");
+            String nif = leerTextoNoVacio("NIF: ");
 
-        try {
+            int tipoCliente = leerEntero("Tipo de cliente (1- Estándar, 2- Premium): ");
+
             controlador.anadirCliente(email, nombre, domicilio, nif, tipoCliente);
             TerminalUI.success("¡Cliente añadido correctamente!");
-        } catch (Exception e) {
-            TerminalUI.error("No se pudo añadir: " + e.getMessage());
+
+        } catch (DAOException | EmailInvalidoException | TipoClienteInvalidoException e) {
+            TerminalUI.exception(e.getMessage());
         }
+
         TerminalUI.sciFiDivider();
     }
 
@@ -258,20 +247,29 @@ public class Vista {
 
     private void obtenerClientesEstandar() {
         TerminalUI.sectionTitle("LISTADO DE CLIENTES ESTÁNDAR");
-        imprimirClientes("No hay clientes estándar registrados.", controlador.obtenerClientesEstandar());
+        try {
+            List<Cliente> lista = controlador.obtenerClientesEstandar();
+            imprimirClientes("No hay clientes estándar registrados.", lista);
+        } catch (DAOException e) {
+            TerminalUI.error("Error al recuperar los clientes: " + e.getMessage());
+        }
     }
 
     private void obtenerClientesPremium() {
         TerminalUI.sectionTitle("LISTADO DE CLIENTES PREMIUM");
-        imprimirClientes("No hay clientes premium registrados.", controlador.obtenerClientesPremium());
+        try {
+            imprimirClientes("No hay clientes premium registrados.", controlador.obtenerClientesPremium());
+        } catch (DAOException e) {
+            TerminalUI.exception(e.getMessage());
+        }
     }
 
     private void eliminarCliente() {
         TerminalUI.sectionTitle("ELIMINAR CLIENTE");
-
-        String email = leerTextoNoVacio("Introduce el Email del cliente: ");
+        String email = leerTextoNoVacio("Introduce el Email del cliente a eliminar: ");
 
         try {
+            // 1. Buscamos el objeto
             Cliente aEliminar = controlador.buscarCliente(email);
 
             TerminalUI.info("Cliente localizado correctamente.");
@@ -280,11 +278,10 @@ public class Vista {
             String conf = leerTextoNoVacio("¿Estás seguro de eliminar a este cliente? (S/N): ");
             if (!conf.equalsIgnoreCase("S")) return;
 
-            controlador.eliminarCliente(email);
+            // 2. Pasamos el OBJETO al controlador, no el email
+            controlador.eliminarCliente(aEliminar);
 
-            TerminalUI.success("Operación de eliminación procesada.");
-            TerminalUI.info("Si el cliente tenía pedidos asociados, el sistema habrá impedido su borrado.");
-            TerminalUI.spotlight("REGISTRO ELIMINADO DEL SISTEMA");
+            TerminalUI.success("¡Cliente eliminado con éxito!");
 
         } catch (EmailInvalidoException | RecursoNoEncontradoException | DAOException e) {
             TerminalUI.exception(e.getMessage());
@@ -366,7 +363,7 @@ public class Vista {
                 try {
                     cliente = controlador.anadirCliente(emailCliente, nombre, domicilio, nif, tipoSeleccionado);
                     TerminalUI.success("Cliente creado correctamente.");
-                } catch (TipoClienteInvalidoException | YaExisteException | DAOException | EmailInvalidoException ex) {
+                } catch (TipoClienteInvalidoException | DAOException | EmailInvalidoException ex) {
                     TerminalUI.exception(ex.getMessage());
                     return;
                 }
