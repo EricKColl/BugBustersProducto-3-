@@ -24,54 +24,20 @@ public class PedidoDAOMySQL implements PedidoDAO {
 
     @Override
     public void insertar(Pedido pedido) throws DAOException {
-        String sql = "INSERT INTO pedidos (id_cliente, id_articulo, cantidad, fecha_hora, estado) VALUES (?, ?, ?, ?, ?)";
+        String sql = "{call insertar_pedido(?, ?, ?, ?)}";
 
-        boolean autoCommitAnterior;
-        try {
-            autoCommitAnterior = conexion.getAutoCommit();
-            conexion.setAutoCommit(false);
+        try (CallableStatement cs = conexion.prepareCall(sql)) {
+            int idCliente = pedido.getCliente().getIdCliente();
+            int idArticulo = obtenerIdArticuloPorCodigo(pedido.getArticulo().getCodigo());
 
-            try (PreparedStatement ps = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-                int idCliente = pedido.getCliente().getIdCliente();
-                int idArticulo = obtenerIdArticuloPorCodigo(pedido.getArticulo().getCodigo());
-                LocalDateTime fechaActual = LocalDateTime.now();
+            cs.setInt(1, idCliente);
+            cs.setInt(2, idArticulo);
+            cs.setInt(3, pedido.getCantidad());
+            cs.setString(4, pedido.getEstado());
 
-                ps.setInt(1, idCliente);
-                ps.setInt(2, idArticulo);
-                ps.setInt(3, pedido.getCantidad());
-                ps.setTimestamp(4, Timestamp.valueOf(fechaActual));
-                ps.setString(5, "PENDIENTE");
-
-                int filas = ps.executeUpdate();
-
-                if (filas == 0) {
-                    conexion.rollback();
-                    throw new DAOException("No se pudo insertar el pedido en la base de datos.", new SQLException());
-                }
-
-                try (ResultSet rs = ps.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        pedido.setIdPedido(rs.getInt(1));
-                    }
-                }
-
-                pedido.setFechaHora(fechaActual);
-                pedido.setEstado("PENDIENTE");
-
-                conexion.commit();
-
-            } catch (SQLException e) {
-                conexion.rollback();
-                throw new DAOException("Error al insertar el pedido en MySQL", e);
-            } catch (DAOException e) {
-                conexion.rollback();
-                throw e;
-            } finally {
-                conexion.setAutoCommit(autoCommitAnterior);
-            }
-
+            cs.execute();
         } catch (SQLException e) {
-            throw new DAOException("Error al gestionar la transacción al insertar pedido", e);
+            throw new DAOException("Error al insertar pedido mediante procedimiento: " + e.getMessage(), e);
         }
     }
 
@@ -112,33 +78,14 @@ public class PedidoDAOMySQL implements PedidoDAO {
     }
 
     @Override
-    public void eliminar(Integer idPedido) throws DAOException { // 1. Añadimos el throws
-        String sql = "DELETE FROM pedidos WHERE id_pedido = ?";
+    public void eliminar(Integer idPedido) throws DAOException {
+        String sql = "{CALL eliminar_pedido(?)}";
 
-        boolean autoCommitAnterior;
-        try {
-            autoCommitAnterior = conexion.getAutoCommit();
-            conexion.setAutoCommit(false);
-
-            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setInt(1, idPedido);
-                int filasAfectadas = ps.executeUpdate();
-
-                if (filasAfectadas == 0) {
-                    throw new DAOException("No se encontró el pedido con ID: " + idPedido);
-                }
-
-                conexion.commit();
-
-            } catch (SQLException e) {
-                conexion.rollback();
-                throw new DAOException("Error al eliminar el pedido de la base de datos.", e);
-            } finally {
-                conexion.setAutoCommit(autoCommitAnterior);
-            }
-
+        try (CallableStatement cs = conexion.prepareCall(sql)) {
+            cs.setInt(1, idPedido);
+            cs.execute();
         } catch (SQLException e) {
-            throw new DAOException("Error crítico en la gestión de la base de datos.", e);
+            throw new DAOException("Error al eliminar el pedido con ID: " + idPedido + " mediante procedimiento", e);
         }
     }
 
