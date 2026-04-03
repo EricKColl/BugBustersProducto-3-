@@ -1,12 +1,12 @@
 package Excepciones;
 
 public class DAOException extends Exception {
-    // MODO 1: Cuando hay un fallo de SQL
+    // Se usa para errores de BD
     public DAOException(String mensaje, Throwable causa) {
         super(mensaje, causa);
     }
 
-    // MODO 2: Cuando quieres lanzar un error TÚ (ej.: "Tiene pedidos")
+    // Se usa para poder lanzar errores personalizados (nuestras reglas)
     public DAOException(String mensaje) {
         super(mensaje);
     }

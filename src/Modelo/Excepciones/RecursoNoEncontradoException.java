@@ -15,6 +15,6 @@ package Modelo.Excepciones;
 
 public class RecursoNoEncontradoException extends Exception {
     public RecursoNoEncontradoException(String tipo, String identificador) {
-        super(tipo + " no encontrado.");
+        super("No encontrado.");
     }
 }

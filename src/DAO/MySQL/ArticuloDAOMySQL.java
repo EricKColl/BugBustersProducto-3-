@@ -132,15 +132,14 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
     }
 
     @Override
-    public void eliminar(String codigo) {
+    public void eliminar(String codigo) throws DAOException {
         String sql = "DELETE FROM articulos WHERE codigo = ?";
 
         if (tienePedidosAsociados(codigo)) {
-            System.err.println("No se puede eliminar el artículo porque tiene pedidos asociados.");
-            return;
+            throw new DAOException("No se puede eliminar el artículo porque tiene pedidos asociados.");
         }
 
-        boolean autoCommitAnterior;
+        boolean autoCommitAnterior = true;
         try {
             autoCommitAnterior = conexion.getAutoCommit();
             conexion.setAutoCommit(false);
@@ -152,13 +151,13 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
 
             } catch (SQLException e) {
                 conexion.rollback();
-                System.err.println("Error al eliminar artículo: " + e.getMessage());
+                throw new DAOException("Error al eliminar el artículo de la base de datos.", e);
             } finally {
                 conexion.setAutoCommit(autoCommitAnterior);
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al gestionar la transacción al eliminar artículo: " + e.getMessage());
+            throw new DAOException("Error crítico en la conexión al intentar eliminar.", e);
         }
     }
 }

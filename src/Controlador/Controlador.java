@@ -29,8 +29,7 @@ public class Controlador {
             this.articuloDAO = factory.getArticuloDAO();
             this.pedidoDAO = factory.getPedidoDAO();
         } catch (DAOException e) {
-            System.err.println("Error crítico al inicializar los DAOs: " + e.getMessage());
-            throw new RuntimeException("No se pudo arrancar el sistema de persistencia.", e);
+            throw new RuntimeException("Error fatal: No se pudo conectar con la base de datos.", e);
         }
     }
 
@@ -39,7 +38,7 @@ public class Controlador {
 
         emailValido(email);
 
-        Cliente cliente = clienteDAO.obtenerPorEmail(email);
+        Cliente cliente = clienteDAO.buscarPorEmail(email);
         if (cliente == null) {
             throw new RecursoNoEncontradoException("Cliente", email);
         }
@@ -135,31 +134,28 @@ public class Controlador {
     }
 
     public Cliente anadirCliente(String email, String nombre, String domicilio, String nif, int tipo)
-            throws EmailInvalidoException, YaExisteException, DAOException, TipoClienteInvalidoException {
+            throws EmailInvalidoException, DAOException, TipoClienteInvalidoException {
 
         emailValido(email);
 
-        if (clienteDAO.existePorEmail(email)) {
-            throw new YaExisteException("cliente", email);
-        }
-
         Cliente nuevoCliente;
         if (tipo == 2) {
-            nuevoCliente = new ClientePremium(email, nombre, domicilio, nif);
+            nuevoCliente = new ClientePremium(nombre, domicilio, email, nif);
         } else if (tipo == 1) {
-            nuevoCliente = new ClienteEstandar(email, nombre, domicilio, nif);
+            nuevoCliente = new ClienteEstandar(nombre, domicilio, email, nif);
         } else {
             throw new TipoClienteInvalidoException("El tipo de cliente debe ser 1 (Estándar) o 2 (Premium)");
         }
 
         clienteDAO.insertar(nuevoCliente);
 
-        return clienteDAO.obtenerPorEmail(email);
+        return nuevoCliente;
     }
 
-    // Este método le permite a la Vista preguntar si un email ya está usado
-    public boolean existeCliente(String email) throws DAOException {
-        return clienteDAO.existePorEmail(email);
+    public void existeCliente(String email) throws DAOException {
+        if (clienteDAO.existePorEmail(email)) {
+            throw new DAOException("El email '" + email + "' ya está registrado.");
+        }
     }
 
     public List<Cliente> obtenerTodosClientes() throws DAOException {
@@ -175,7 +171,7 @@ public class Controlador {
     }
 
     public void emailValido(String email) throws EmailInvalidoException {
-        if (!email.contains("@") || !email.contains(".")) {
+        if (!email.contains("@") && !email.contains(".")) {
             throw new EmailInvalidoException(email);
         }
     }
@@ -183,7 +179,7 @@ public class Controlador {
     public Cliente buscarCliente(String email) throws EmailInvalidoException, RecursoNoEncontradoException, DAOException {
         emailValido(email);
 
-        Cliente cliente = clienteDAO.obtenerPorEmail(email);
+        Cliente cliente = clienteDAO.buscarPorEmail(email);
 
         if (cliente == null) {
             throw new RecursoNoEncontradoException("cliente", email);
@@ -208,10 +204,10 @@ public class Controlador {
 
     public void anadirArticulo(String codigo, String descripcion, double precioVenta,
                                double gastosEnvio, int tiempoPreparacionMin)
-            throws YaExisteException, DAOException {
+            throws DAOException {
 
         if (articuloDAO.obtenerPorId(codigo) != null) {
-            throw new YaExisteException("artículo", codigo);
+            throw new DAOException("Operación cancelada: El artículo con código '" + codigo + "' ya existe.");
         }
 
         Articulo articulo = new Articulo(codigo, descripcion, precioVenta, gastosEnvio, tiempoPreparacionMin);

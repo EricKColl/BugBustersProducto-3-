@@ -93,30 +93,20 @@ public class Vista {
 
     private void anadirArticulo() {
         TerminalUI.sectionTitle("AÑADIR ARTÍCULO");
-        String codigo = leerTextoNoVacio("Código: ");
 
         try {
-            controlador.buscarArticulo(codigo);
-            TerminalUI.error("Ya existe un artículo con código: " + codigo);
-            return;
-        } catch (RecursoNoEncontradoException e) {
-        } catch (DAOException e) {
-            TerminalUI.error("Error de base de datos al comprobar el artículo: " + e.getMessage());
-            return;
-        }
+            String codigo = leerTextoNoVacio("Código: ");
 
-        String descripcion = leerTextoNoVacio("Descripción: ");
-        double precioVenta = leerDouble("Precio de venta: ");
-        double gastosEnvio = leerDouble("Gastos de envío: ");
-        int tiempoPreparacionMin = leerEntero("Tiempo de preparación (minutos): ");
+            String descripcion = leerTextoNoVacio("Descripción: ");
+            double precioVenta = leerDouble("Precio de venta: ");
+            double gastosEnvio = leerDouble("Gastos de envío: ");
+            int tiempoPreparacionMin = leerEntero("Tiempo de preparación (minutos): ");
 
-        try {
             controlador.anadirArticulo(codigo, descripcion, precioVenta, gastosEnvio, tiempoPreparacionMin);
             TerminalUI.success("Artículo añadido correctamente.");
-        } catch (YaExisteException e) {
-            TerminalUI.exception(e.getMessage());
+
         } catch (DAOException e) {
-            TerminalUI.error("Fallo crítico al guardar en MySQL: " + e.getMessage());
+            TerminalUI.exception(e.getMessage());
         }
         TerminalUI.sciFiDivider();
     }
@@ -205,26 +195,25 @@ public class Vista {
 
     private void anadirCliente() {
         TerminalUI.sectionTitle("AÑADIR CLIENTE");
-        String email = leerTextoNoVacio("Email: ");
 
         try {
-            // Validación temprana
-            if (controlador.existeCliente(email)) {
-                TerminalUI.error("Error: Ya existe un cliente con el email: " + email);
-                return;
-            }
+            String email = leerTextoNoVacio("Email: ");
+            controlador.emailValido(email);
+            controlador.existeCliente(email);
 
             String nombre = leerTextoNoVacio("Nombre: ");
             String domicilio = leerTextoNoVacio("Domicilio: ");
             String nif = leerTextoNoVacio("NIF: ");
+
             int tipoCliente = leerEntero("Tipo de cliente (1- Estándar, 2- Premium): ");
 
             controlador.anadirCliente(email, nombre, domicilio, nif, tipoCliente);
             TerminalUI.success("¡Cliente añadido correctamente!");
 
-        } catch (EmailInvalidoException | YaExisteException | DAOException | TipoClienteInvalidoException e) {
+        } catch (DAOException | EmailInvalidoException | TipoClienteInvalidoException e) {
             TerminalUI.exception(e.getMessage());
         }
+
         TerminalUI.sciFiDivider();
     }
 
@@ -374,7 +363,7 @@ public class Vista {
                 try {
                     cliente = controlador.anadirCliente(emailCliente, nombre, domicilio, nif, tipoSeleccionado);
                     TerminalUI.success("Cliente creado correctamente.");
-                } catch (TipoClienteInvalidoException | YaExisteException | DAOException | EmailInvalidoException ex) {
+                } catch (TipoClienteInvalidoException | DAOException | EmailInvalidoException ex) {
                     TerminalUI.exception(ex.getMessage());
                     return;
                 }

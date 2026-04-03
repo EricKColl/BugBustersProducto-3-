@@ -18,7 +18,7 @@ public class ClienteDAOMySQL implements ClienteDAO {
         this.conexion = conexion;
     }
 
-    private Cliente mapearCliente(ResultSet rs) throws SQLException {
+    private Cliente crearSegunTipo(ResultSet rs) throws SQLException {
         int id = rs.getInt("id_cliente");
         String email = rs.getString("email");
         String nombre = rs.getString("nombre");
@@ -46,7 +46,7 @@ public class ClienteDAOMySQL implements ClienteDAO {
         try (PreparedStatement ps = conexion.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                lista.add(mapearCliente(rs));
+                lista.add(crearSegunTipo(rs));
             }
         } catch (SQLException e) {
             throw new DAOException("Error al obtener clientes estándar", e);
@@ -63,7 +63,7 @@ public class ClienteDAOMySQL implements ClienteDAO {
         try (PreparedStatement ps = conexion.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                lista.add(mapearCliente(rs));
+                lista.add(crearSegunTipo(rs));
             }
         } catch (SQLException e) {
             throw new DAOException("Error al obtener clientes estándar", e);
@@ -95,13 +95,13 @@ public class ClienteDAOMySQL implements ClienteDAO {
 
             } catch (SQLException e) {
                 conexion.rollback();
-                throw new DAOException("Error al insertar el cliente con email: " + cliente.getEmail(), e);
+                throw new DAOException("Error al insertar el cliente en la base de datos.", e);
             } finally {
                 conexion.setAutoCommit(autoCommitAnterior);
             }
 
         } catch (SQLException e) {
-            throw new DAOException("Error al gestionar la transacción al insertar cliente", e);
+            throw new DAOException("Error crítico en la gestión de la base de datos.", e);
         }
     }
 
@@ -113,7 +113,7 @@ public class ClienteDAOMySQL implements ClienteDAO {
         try (PreparedStatement ps = conexion.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                lista.add(mapearCliente(rs));
+                lista.add(crearSegunTipo(rs));
             }
         } catch (SQLException e) {
             throw new DAOException("Error al obtener todos los clientes", e);
@@ -131,7 +131,7 @@ public class ClienteDAOMySQL implements ClienteDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return mapearCliente(rs);
+                    return crearSegunTipo(rs);
                 }
             }
         } catch (SQLException e) {
@@ -139,20 +139,6 @@ public class ClienteDAOMySQL implements ClienteDAO {
         }
 
         return null;
-    }
-
-    public boolean existe(Integer idCliente) {
-        String sql = "SELECT 1 FROM clientes WHERE id_cliente = ?";
-
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setInt(1, idCliente);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
-            return false;
-        }
     }
 
     private boolean tienePedidosAsociados(Integer idCliente) {
@@ -219,7 +205,7 @@ public class ClienteDAOMySQL implements ClienteDAO {
     }
 
     @Override
-    public Cliente obtenerPorEmail(String email) throws DAOException {
+    public Cliente buscarPorEmail(String email) throws DAOException {
         String sql = "SELECT * FROM clientes WHERE email = ?";
 
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
@@ -227,7 +213,7 @@ public class ClienteDAOMySQL implements ClienteDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return mapearCliente(rs);
+                    return crearSegunTipo(rs);
                 }
             }
         } catch (SQLException e) {
