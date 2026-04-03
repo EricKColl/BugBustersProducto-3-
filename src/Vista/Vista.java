@@ -97,6 +97,15 @@ public class Vista {
         try {
             String codigo = leerTextoNoVacio("Código: ");
 
+            try {
+                controlador.buscarArticulo(codigo);
+
+                TerminalUI.error("El artículo con código '" + codigo + "' ya existe.");
+                return;
+
+            } catch (RecursoNoEncontradoException e) {
+                // No hacemos nada: que no exista es lo que buscamos para poder insertarlo.
+            }
             String descripcion = leerTextoNoVacio("Descripción: ");
             double precioVenta = leerDouble("Precio de venta: ");
             double gastosEnvio = leerDouble("Gastos de envío: ");
@@ -342,7 +351,8 @@ public class Vista {
 
         try {
             cliente = controlador.buscarCliente(emailCliente);
-            TerminalUI.info("Cliente encontrado: " + cliente.getNombre());
+            TerminalUI.info("Cliente encontrado.");
+            TerminalUI.showClientCard(cliente);
 
         } catch (EmailInvalidoException | DAOException e) {
             TerminalUI.exception(e.getMessage());
