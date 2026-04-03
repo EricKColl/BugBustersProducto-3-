@@ -372,6 +372,8 @@ public class Vista {
                 try {
                     cliente = controlador.anadirCliente(emailCliente, nombre, domicilio, nif, tipoSeleccionado);
                     TerminalUI.success("¡Cliente creado correctamente!");
+                    TerminalUI.showClientsTable(List.of(cliente));
+
                 } catch (TipoClienteInvalidoException | DAOException | EmailInvalidoException ex) {
                     TerminalUI.exception(ex.getMessage());
                     return;
