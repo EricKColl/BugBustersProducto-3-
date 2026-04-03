@@ -4,6 +4,7 @@ import DAO.Interfaces.ArticuloDAO;
 import Excepciones.DAOException;
 import Modelo.Articulo;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,37 +22,20 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
 
     @Override
     public void insertar(Articulo articulo) throws DAOException {
-        String sql = "INSERT INTO articulos (codigo, descripcion, precio_venta, gastos_envio, tiempo_preparacion) VALUES (?, ?, ?, ?, ?)";
+        // Llamada al procedimiento almacenado
+        String sql = "{call insertar_articulo(?, ?, ?, ?, ?)}";
 
-        boolean autoCommitAnterior;
-        try {
-            autoCommitAnterior = conexion.getAutoCommit();
-            conexion.setAutoCommit(false);
+        try (CallableStatement cs = conexion.prepareCall(sql)) {
+            cs.setString(1, articulo.getCodigo());
+            cs.setString(2, articulo.getDescripcion());
+            cs.setDouble(3, articulo.getPrecioVenta());
+            cs.setDouble(4, articulo.getGastosEnvio());
+            cs.setInt(5, articulo.getTiempoPreparacionMin());
 
-            try (PreparedStatement stat = conexion.prepareStatement(sql)) {
-                stat.setString(1, articulo.getCodigo());
-                stat.setString(2, articulo.getDescripcion());
-                stat.setDouble(3, articulo.getPrecioVenta());
-                stat.setDouble(4, articulo.getGastosEnvio());
-                stat.setInt(5, articulo.getTiempoPreparacionMin());
-
-                int filasAfectadas = stat.executeUpdate();
-                if (filasAfectadas == 0) {
-                    conexion.rollback();
-                    throw new DAOException("Error: No se ha insertado el artículo.", new SQLException());
-                }
-
-                conexion.commit();
-
-            } catch (SQLException e) {
-                conexion.rollback();
-                throw new DAOException("Error de SQL al intentar guardar el artículo.", e);
-            } finally {
-                conexion.setAutoCommit(autoCommitAnterior);
-            }
-
+            cs.execute();
+            // MySQL ya hizo el COMMIT internamente
         } catch (SQLException e) {
-            throw new DAOException("Error al gestionar la transacción al insertar artículo.", e);
+            throw new DAOException("Error al insertar artículo mediante procedimiento: " + e.getMessage(), e);
         }
     }
 
@@ -109,16 +93,9 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
     }
 
     private boolean tienePedidosAsociados(String codigoArticulo) {
-        String sql = """
-                SELECT COUNT(*)
-                FROM pedidos p
-                JOIN articulos a ON p.id_articulo = a.id_articulo
-                WHERE a.codigo = ?
-                """;
-
+        String sql = "SELECT COUNT(*) FROM pedidos p JOIN articulos a ON p.id_articulo = a.id_articulo WHERE a.codigo = ?";
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setString(1, codigoArticulo);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1) > 0;
@@ -127,37 +104,41 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
         } catch (SQLException e) {
             return true;
         }
-
         return false;
     }
 
     @Override
     public void eliminar(String codigo) throws DAOException {
-        String sql = "DELETE FROM articulos WHERE codigo = ?";
-
+        // 1. Primero comprobamos si tiene pedidos (lógica de negocio que ya tenías)
         if (tienePedidosAsociados(codigo)) {
             throw new DAOException("No se puede eliminar el artículo porque tiene pedidos asociados.");
         }
 
-        boolean autoCommitAnterior = true;
-        try {
-            autoCommitAnterior = conexion.getAutoCommit();
-            conexion.setAutoCommit(false);
+        // 2. Buscamos el ID interno que corresponde a ese código para el procedimiento
+        int idArticulo = -1;
+        String sqlBusqueda = "SELECT id_articulo FROM articulos WHERE codigo = ?";
 
-            try (PreparedStatement stat = conexion.prepareStatement(sql)) {
-                stat.setString(1, codigo);
-                stat.executeUpdate();
-                conexion.commit();
-
-            } catch (SQLException e) {
-                conexion.rollback();
-                throw new DAOException("Error al eliminar el artículo de la base de datos.", e);
-            } finally {
-                conexion.setAutoCommit(autoCommitAnterior);
+        try (PreparedStatement psBusqueda = conexion.prepareStatement(sqlBusqueda)) {
+            psBusqueda.setString(1, codigo);
+            try (ResultSet rs = psBusqueda.executeQuery()) {
+                if (rs.next()) {
+                    idArticulo = rs.getInt("id_articulo");
+                } else {
+                    throw new DAOException("El artículo con código " + codigo + " no existe.");
+                }
             }
-
         } catch (SQLException e) {
-            throw new DAOException("Error crítico en la conexión al intentar eliminar.", e);
+            throw new DAOException("Error al buscar el ID del artículo: " + e.getMessage(), e);
+        }
+
+        // 3. Llamamos al procedimiento usando el ID encontrado
+        String sqlProc = "{CALL eliminar_articulo(?)}";
+        try (CallableStatement cs = conexion.prepareCall(sqlProc)) {
+            cs.setInt(1, idArticulo);
+            cs.execute();
+            // El COMMIT ya lo hace el procedimiento en MySQL
+        } catch (SQLException e) {
+            throw new DAOException("Error al ejecutar eliminar_articulo: " + e.getMessage(), e);
         }
     }
 }
