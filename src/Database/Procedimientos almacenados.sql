@@ -1,7 +1,7 @@
 CREATE DATABASE IF NOT EXISTS producto3;
 USE producto3;
 
--- Borramos para recrear con la nueva lógica
+-- Borramos para recrear sin lógica de transacción interna
 DROP PROCEDURE IF EXISTS insertar_cliente;
 DROP PROCEDURE IF EXISTS actualizar_cliente;
 DROP PROCEDURE IF EXISTS eliminar_cliente;
@@ -9,8 +9,6 @@ DROP PROCEDURE IF EXISTS insertar_articulo;
 DROP PROCEDURE IF EXISTS actualizar_articulo;
 DROP PROCEDURE IF EXISTS eliminar_articulo;
 DROP PROCEDURE IF EXISTS insertar_pedido;
-DROP PROCEDURE IF EXISTS actualizar_pedido;
-DROP PROCEDURE IF EXISTS eliminar_pedido;
 
 DELIMITER $$
 
@@ -26,16 +24,8 @@ CREATE PROCEDURE insertar_cliente (
     IN p_tipo_cliente ENUM('estandar', 'premium')
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL; -- Reenvía el error a Java
-    END;
-
-    START TRANSACTION;
-        INSERT INTO clientes (email, nombre, domicilio, nif, tipo_cliente)
-        VALUES (p_email, p_nombre, p_domicilio, p_nif, p_tipo_cliente);
-    COMMIT;
+    INSERT INTO clientes (email, nombre, domicilio, nif, tipo_cliente)
+    VALUES (p_email, p_nombre, p_domicilio, p_nif, p_tipo_cliente);
 END $$
 
 CREATE PROCEDURE actualizar_cliente (
@@ -47,28 +37,20 @@ CREATE PROCEDURE actualizar_cliente (
     IN p_tipo_cliente ENUM('estandar', 'premium')
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
-
-    START TRANSACTION;
-        UPDATE clientes
-        SET email = p_email,
-            nombre = p_nombre,
-            domicilio = p_domicilio,
-            nif = p_nif,
-            tipo_cliente = p_tipo_cliente
-        WHERE id_cliente = p_id_cliente;
-    COMMIT;
+    UPDATE clientes
+    SET email = p_email,
+        nombre = p_nombre,
+        domicilio = p_domicilio,
+        nif = p_nif,
+        tipo_cliente = p_tipo_cliente
+    WHERE id_cliente = p_id_cliente;
 END $$
 
 CREATE PROCEDURE eliminar_cliente (
     IN p_id_cliente INT
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
-
-    START TRANSACTION;
-        DELETE FROM clientes WHERE id_cliente = p_id_cliente;
-    COMMIT;
+    DELETE FROM clientes WHERE id_cliente = p_id_cliente;
 END $$
 
 -- =========================================================
@@ -83,12 +65,8 @@ CREATE PROCEDURE insertar_articulo (
     IN p_tiempo_preparacion INT
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
-
-    START TRANSACTION;
-        INSERT INTO articulos (codigo, descripcion, precio_venta, gastos_envio, tiempo_preparacion)
-        VALUES (p_codigo, p_descripcion, p_precio_venta, p_gastos_envio, p_tiempo_preparacion);
-    COMMIT;
+    INSERT INTO articulos (codigo, descripcion, precio_venta, gastos_envio, tiempo_preparacion)
+    VALUES (p_codigo, p_descripcion, p_precio_venta, p_gastos_envio, p_tiempo_preparacion);
 END $$
 
 CREATE PROCEDURE actualizar_articulo (
@@ -100,61 +78,39 @@ CREATE PROCEDURE actualizar_articulo (
     IN p_tiempo_preparacion INT
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
-
-    START TRANSACTION;
-        UPDATE articulos
-        SET codigo = p_codigo,
-            descripcion = p_descripcion,
-            precio_venta = p_precio_venta,
-            gastos_envio = p_gastos_envio,
-            tiempo_preparacion = p_tiempo_preparacion
-        WHERE id_articulo = p_id_articulo;
-    COMMIT;
+    UPDATE articulos
+    SET codigo = p_codigo,
+        descripcion = p_descripcion,
+        precio_venta = p_precio_venta,
+        gastos_envio = p_gastos_envio,
+        tiempo_preparacion = p_tiempo_preparacion
+    WHERE id_articulo = p_id_articulo;
 END $$
 
 CREATE PROCEDURE eliminar_articulo (
     IN p_id_articulo INT
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
-
-    START TRANSACTION;
-        DELETE FROM articulos WHERE id_articulo = p_id_articulo;
-    COMMIT;
+    DELETE FROM articulos WHERE id_articulo = p_id_articulo;
 END $$
 
 -- =========================================================
 -- PROCEDIMIENTOS ALMACENADOS - TABLA PEDIDOS
 -- =========================================================
 
-DROP PROCEDURE IF EXISTS insertar_pedido;
-
-DELIMITER //
-
 CREATE PROCEDURE insertar_pedido(
     IN p_id_cliente INT,
     IN p_id_articulo INT,
     IN p_cantidad INT,
-    IN p_fecha_manual DATETIME, -- <--- NUEVO PARÁMETRO
+    IN p_fecha_manual DATETIME,
     IN p_estado ENUM('PENDIENTE', 'ENVIADO'),
     OUT p_nuevo_id INT
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-
     INSERT INTO pedidos (id_cliente, id_articulo, cantidad, fecha_hora, estado)
     VALUES (p_id_cliente, p_id_articulo, p_cantidad, p_fecha_manual, p_estado);
 
     SET p_nuevo_id = LAST_INSERT_ID();
-
-    COMMIT;
-END //
+END $$
 
 DELIMITER ;

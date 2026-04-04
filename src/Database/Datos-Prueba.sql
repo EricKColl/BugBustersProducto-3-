@@ -30,11 +30,11 @@ INSERT INTO articulos (codigo, descripcion, precio_venta, gastos_envio, tiempo_p
 -- PEDIDOS
 -- =========================================================
 INSERT INTO pedidos (id_cliente, id_articulo, cantidad, fecha_hora, estado) VALUES
-(1, 1, 2, '2026-03-20 12:34:25', 'PENDIENTE'),
+(1, 1, 2, '2026-03-20 12:34:25', 'ENVIADO'),
 (2, 3, 1, '2026-03-21 09:15:10', 'ENVIADO'),
-(3, 2, 1, '2026-03-21 18:42:03', 'PENDIENTE'),
+(3, 2, 1, '2026-03-21 18:42:03', 'ENVIADO'),
 (1, 4, 1, '2026-03-22 11:05:47', 'ENVIADO'),
-(4, 5, 2, '2026-03-22 16:20:30', 'PENDIENTE'),
+(4, 5, 2, '2026-03-22 16:20:30', 'ENVIADO'),
 (2, 6, 1, '2026-03-23 10:10:10', 'ENVIADO');
 
 -- =========================================================

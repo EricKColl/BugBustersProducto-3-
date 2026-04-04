@@ -8,6 +8,7 @@ import DAO.MySQL.PedidoDAOMySQL;
 import Util.ConexionBD;
 import DAO.Interfaces.ClienteDAO;
 import DAO.MySQL.ClienteDAOMySQL;
+import java.sql.Connection;
 
 public class MySQLDAOFactory extends DAOFactory {
 
@@ -35,6 +36,11 @@ public class MySQLDAOFactory extends DAOFactory {
         ConexionBD con = ConexionBD.getInstancia();
         con.conectar();
         return new ClienteDAOMySQL(con.getConexion());
+    }
+
+    @Override
+    public Connection getConnection() throws DAOException {
+        return ConexionBD.getInstancia().getConexion();
     }
 
 }
