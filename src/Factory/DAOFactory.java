@@ -4,6 +4,7 @@ import Excepciones.DAOException;
 import DAO.Interfaces.PedidoDAO;
 import DAO.Interfaces.ArticuloDAO;
 import DAO.Interfaces.ClienteDAO;
+import java.sql.Connection;
 
 public abstract class DAOFactory {
 
@@ -22,4 +23,5 @@ public abstract class DAOFactory {
     public abstract PedidoDAO getPedidoDAO() throws DAOException;
     public abstract ArticuloDAO getArticuloDAO() throws DAOException;
     public abstract ClienteDAO getClienteDAO() throws DAOException;
+    public abstract Connection getConnection() throws DAOException;
 }

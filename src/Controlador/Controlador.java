@@ -12,19 +12,21 @@ import Modelo.Pedido;
 import Excepciones.DAOException;
 import Modelo.Excepciones.*;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 
 public class Controlador {
 
+    private DAOFactory factory;
     private PedidoDAO pedidoDAO;
     private ClienteDAO clienteDAO;
     private ArticuloDAO articuloDAO;
 
     public Controlador() {
         try {
-            DAOFactory factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
+            this.factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
             this.clienteDAO = factory.getClienteDAO();
             this.articuloDAO = factory.getArticuloDAO();
             this.pedidoDAO = factory.getPedidoDAO();
@@ -39,19 +41,37 @@ public class Controlador {
         emailValido(email);
 
         Cliente cliente = clienteDAO.buscarPorEmail(email);
-        if (cliente == null) {
-            throw new RecursoNoEncontradoException("Cliente", email);
-        }
+        if (cliente == null) throw new RecursoNoEncontradoException("Cliente", email);
 
         Articulo articulo = articuloDAO.obtenerPorId(codigoArticulo);
-        if (articulo == null) {
-            throw new RecursoNoEncontradoException("Artículo", codigoArticulo);
+        if (articulo == null) throw new RecursoNoEncontradoException("Articulo", codigoArticulo);
+
+        Connection repo = null;
+        try {
+            repo = factory.getConnection();
+            repo.setAutoCommit(false);
+
+            Pedido pedido = new Pedido(
+                    0,
+                    cliente,
+                    articulo,
+                    cantidad,
+                    LocalDateTime.now(),
+                    "PENDIENTE"
+            );
+
+            pedidoDAO.insertar(pedido);
+
+            repo.commit();
+            return pedido;
+        } catch (SQLException | DAOException e) {
+            try {
+                if (repo != null) repo.rollback();
+            } catch (SQLException ex) { /* ... */ }
+            throw new DAOException("No se pudo completar el pedido: " + e.getMessage());
+        } finally {
+            restaurarAutoCommit(repo);
         }
-
-        Pedido nuevoPedido = new Pedido(0, cliente, articulo, cantidad, LocalDateTime.now(), "PENDIENTE");
-        pedidoDAO.insertar(nuevoPedido);
-
-        return nuevoPedido;
     }
 
     public void eliminarPedido(int idPedido) throws DAOException, RecursoNoEncontradoException, PedidoNoCancelableException {
@@ -138,23 +158,31 @@ public class Controlador {
         }
     }
 
-    public Cliente anadirCliente(String email, String nombre, String domicilio, String nif, int tipo)
-            throws EmailInvalidoException, DAOException, TipoClienteInvalidoException {
+    public Cliente anadirCliente(String email, String nombre, String domicilio, String nif, int tipoCliente)
+            throws DAOException {
 
-        emailValido(email);
+        Connection repo = null;
+        try {
+            repo = factory.getConnection();
+            repo.setAutoCommit(false);
 
-        Cliente nuevoCliente;
-        if (tipo == 2) {
-            nuevoCliente = new ClientePremium(email, nombre, domicilio, nif);
-        } else if (tipo == 1) {
-            nuevoCliente = new ClienteEstandar(email, nombre, domicilio, nif);
-        } else {
-            throw new TipoClienteInvalidoException("El tipo de cliente debe ser 1 (Estándar) o 2 (Premium)");
+            Cliente cliente;
+            if (tipoCliente == 2) {
+                cliente = new ClientePremium(email, nombre, domicilio, nif);
+            } else {
+                cliente = new ClienteEstandar(email, nombre, domicilio, nif);
+            }
+
+            clienteDAO.insertar(cliente);
+
+            repo.commit();
+            return cliente;
+        } catch (SQLException | DAOException e) {
+            if (repo != null) try { repo.rollback(); } catch (SQLException ex) {}
+            throw new DAOException("Error al añadir cliente: " + e.getMessage());
+        } finally {
+            restaurarAutoCommit(repo);
         }
-
-        clienteDAO.insertar(nuevoCliente);
-
-        return nuevoCliente;
     }
 
     public void existeCliente(String email) throws DAOException {
@@ -208,16 +236,33 @@ public class Controlador {
     }
 
     public Articulo anadirArticulo(String codigo, String descripcion, double precioVenta,
-                               double gastosEnvio, int tiempoPreparacionMin)
+                                   double gastosEnvio, int tiempoPreparacionMin)
             throws DAOException {
 
+        // Validación previa para no intentar insertar si ya existe
         if (articuloDAO.obtenerPorId(codigo) != null) {
             throw new DAOException("El artículo con código '" + codigo + "' ya existe.");
         }
 
-        Articulo articulo = new Articulo(codigo, descripcion, precioVenta, gastosEnvio, tiempoPreparacionMin);
-        articuloDAO.insertar(articulo);
-        return articulo;
+        Connection repo = null;
+        try {
+            repo = factory.getConnection();
+            repo.setAutoCommit(false);
+
+            Articulo articulo = new Articulo(codigo, descripcion, precioVenta, gastosEnvio, tiempoPreparacionMin);
+
+            articuloDAO.insertar(articulo);
+
+            repo.commit();
+            return articulo;
+        } catch (SQLException | DAOException e) {
+            try {
+                if (repo != null) repo.rollback();
+            } catch (SQLException ex) { /* ... */ }
+            throw new DAOException("Error al añadir artículo: " + e.getMessage());
+        } finally {
+            restaurarAutoCommit(repo);
+        }
     }
 
     public void eliminarArticulo(String codigo) throws RecursoNoEncontradoException, DAOException {
@@ -231,5 +276,15 @@ public class Controlador {
 
     public List<Articulo> obtenerTodosArticulos() throws DAOException {
         return articuloDAO.obtenerTodos();
+    }
+
+    private void restaurarAutoCommit(Connection repo) {
+        try {
+            if (repo != null) {
+                repo.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al restaurar AutoCommit: " + e.getMessage());
+        }
     }
 }

@@ -220,7 +220,7 @@ public class Vista {
             controlador.anadirCliente(email, nombre, domicilio, nif, tipoCliente);
             TerminalUI.success("¡Cliente añadido correctamente!");
 
-        } catch (DAOException | EmailInvalidoException | TipoClienteInvalidoException e) {
+        } catch (DAOException | EmailInvalidoException e) {
             TerminalUI.exception(e.getMessage());
         }
 
@@ -352,6 +352,7 @@ public class Vista {
         Cliente cliente = null;
 
         try {
+            // Buscamos al cliente
             cliente = controlador.buscarCliente(emailCliente);
             TerminalUI.info("Cliente encontrado.");
             TerminalUI.showClientCard(cliente);
@@ -372,11 +373,12 @@ public class Vista {
                 int tipoSeleccionado = leerEntero("Tipo cliente (1-Estándar, 2-Premium): ");
 
                 try {
+                    // Pasamos el int directamente al controlador
                     cliente = controlador.anadirCliente(emailCliente, nombre, domicilio, nif, tipoSeleccionado);
                     TerminalUI.success("¡Cliente creado correctamente!");
                     TerminalUI.showClientsTable(List.of(cliente));
 
-                } catch (TipoClienteInvalidoException | DAOException | EmailInvalidoException ex) {
+                } catch (DAOException ex) {
                     TerminalUI.exception(ex.getMessage());
                     return;
                 }
@@ -386,31 +388,23 @@ public class Vista {
             }
         }
 
-        TerminalUI.info("Procedemos a la creación del pedido.");
-        String codigoArticulo = leerTextoNoVacio("Código del artículo: ");
-
-        Articulo articulo = null;
+        // --- CONTINUACIÓN DEL PEDIDO (DATOS DEL ARTÍCULO) ---
         try {
-            articulo = controlador.buscarArticulo(codigoArticulo);
-            TerminalUI.showArticleCard(articulo);
-        } catch (RecursoNoEncontradoException | DAOException e) {
-            TerminalUI.exception(e.getMessage());
-            return;
-        }
+            String codigoArticulo = leerTextoNoVacio("Código del artículo: ");
 
-        int cantidad = leerEntero("Cantidad: ");
-        int tiempoTotal = articulo.getTiempoPreparacionMin() * cantidad;
+            Articulo articulo = controlador.buscarArticulo(codigoArticulo);
+            TerminalUI.info("Articulo encontrado: " + articulo.getDescripcion());
 
-        try {
-            Pedido pedido = controlador.anadirPedido(emailCliente, codigoArticulo, cantidad);
-            TerminalUI.success("Pedido creado correctamente para " + cliente.getNombre() + ".");
-            TerminalUI.info("Tiempo estimado: " + tiempoTotal + " minutos");
-            TerminalUI.showOrderCard(pedido);
-            TerminalUI.spotlight("OPERACIÓN COMPLETADA CON ÉXITO");
+            int cantidad = leerEntero("Cantidad: ");
 
-        } catch (EmailInvalidoException | RecursoNoEncontradoException | DAOException e) {
+            controlador.anadirPedido(emailCliente, codigoArticulo, cantidad);
+            TerminalUI.success("¡Pedido añadido correctamente!");
+
+        } catch (RecursoNoEncontradoException | DAOException | EmailInvalidoException e) {
             TerminalUI.exception(e.getMessage());
         }
+
+        TerminalUI.sciFiDivider();
     }
 
     private void eliminarPedido() {
