@@ -66,7 +66,7 @@ public class ClienteDAOMySQL implements ClienteDAO {
                 lista.add(crearSegunTipo(rs));
             }
         } catch (SQLException e) {
-            throw new DAOException("Error al obtener clientes estándar", e);
+            throw new DAOException("Error al obtener clientes premium", e);
         }
 
         return lista;

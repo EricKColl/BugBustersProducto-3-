@@ -97,49 +97,46 @@ public class Vista {
 
     private void anadirArticulo() {
         TerminalUI.sectionTitle("AÑADIR ARTÍCULO");
+        String codigo = leerTextoNoVacio("Código: ");
 
         try {
-            String codigo = leerTextoNoVacio("Código: ");
+            // 1. Preguntamos al controlador si existe
+            Articulo existente = controlador.buscarArticulo(codigo);
 
-            try {
-                Articulo articuloExistente = controlador.buscarArticulo(codigo);
+            // Si no saltó la excepción RecursoNoEncontrado, es que EXISTE
+            TerminalUI.warning("El artículo ya existe.");
+            TerminalUI.showArticleCard(existente);
 
-                TerminalUI.warning("El artículo con código '" + codigo + "' ya existe.");
-                TerminalUI.showArticleCard(articuloExistente);
-
-                String respuesta = leerTextoNoVacio("¿Quieres añadir más stock a este artículo? (S/N): ");
-                if (respuesta.equalsIgnoreCase("S")) {
-                    int cantidadExtra = leerEntero("Cantidad a sumar al stock actual: ");
-                    controlador.sumarStockArticulo(codigo, cantidadExtra);
-
-                    Articulo articuloActualizado = controlador.buscarArticulo(codigo);
-                    TerminalUI.success("Stock añadido correctamente.");
-                    TerminalUI.info("Stock actual del artículo: " + articuloActualizado.getCantidadDisponible() + " unidades");
-                    TerminalUI.showArticleCard(articuloActualizado);
-                    TerminalUI.spotlight("STOCK ACTUALIZADO");
-                } else {
-                    TerminalUI.warning("Operación cancelada.");
-                }
-                return;
-
-            } catch (RecursoNoEncontradoException e) {
-                // Correcto, seguimos para insertarlo nuevo
+            if (leerTextoNoVacio("¿Añadir stock? (S/N): ").equalsIgnoreCase("S")) {
+                int cantidad = leerEntero("Cantidad a sumar: ");
+                // El controlador hace el trabajo sucio, la vista solo muestra el resultado
+                Articulo actualizado = controlador.sumarStockArticulo(codigo, cantidad);
+                TerminalUI.success("Stock actualizado.");
+                TerminalUI.showArticleCard(actualizado);
             }
+            return;
 
-            String descripcion = leerTextoNoVacio("Descripción: ");
-            double precioVenta = leerDouble("Precio de venta: ");
-            double gastosEnvio = leerDouble("Gastos de envío: ");
-            int tiempoPreparacionMin = leerEntero("Tiempo de preparación (minutos): ");
-            int cantidadDisponible = leerEntero("Cantidad disponible inicial: ");
+        } catch (RecursoNoEncontradoException e) {
+            // 2. Si NO existe, el controlador lanzó esta excepción y aquí procedemos al alta
+            try {
+                String desc = leerTextoNoVacio("Descripción: ");
+                double precio = leerDouble("Precio: ");
+                double envio = leerDouble("Envío: ");
+                int tiempo = leerEntero("Minutos prep: ");
+                int stock = leerEntero("Stock inicial: ");
 
-            controlador.anadirArticulo(codigo, descripcion, precioVenta, gastosEnvio, tiempoPreparacionMin, cantidadDisponible);
-            TerminalUI.success("¡Artículo añadido correctamente!");
+                // El controlador crea e inserta
+                Articulo nuevo = controlador.anadirArticulo(codigo, desc, precio, envio, tiempo, stock);
 
+                TerminalUI.success("Artículo creado.");
+                TerminalUI.showArticleCard(nuevo);
+
+            } catch (DAOException ex) {
+                TerminalUI.exception(ex.getMessage());
+            }
         } catch (DAOException e) {
             TerminalUI.exception(e.getMessage());
         }
-
-        TerminalUI.sciFiDivider();
     }
 
     private void mostrarArticulos() {
@@ -253,17 +250,19 @@ public class Vista {
 
         try {
             String email = leerTextoNoVacio("Email: ");
+
             controlador.emailValido(email);
             controlador.existeCliente(email);
 
             String nombre = leerTextoNoVacio("Nombre: ");
             String domicilio = leerTextoNoVacio("Domicilio: ");
             String nif = leerTextoNoVacio("NIF: ");
-
             int tipoCliente = leerEntero("Tipo de cliente (1- Estándar, 2- Premium): ");
 
-            controlador.anadirCliente(email, nombre, domicilio, nif, tipoCliente);
+            Cliente nuevo = controlador.anadirCliente(email, nombre, domicilio, nif, tipoCliente);
+
             TerminalUI.success("¡Cliente añadido correctamente!");
+            TerminalUI.showClientCard(nuevo);
 
         } catch (DAOException | EmailInvalidoException | TipoClienteInvalidoException e) {
             TerminalUI.exception(e.getMessage());
@@ -306,8 +305,10 @@ public class Vista {
             List<Cliente> lista = controlador.obtenerClientesEstandar();
             imprimirClientes("No hay clientes estándar registrados.", lista);
         } catch (DAOException e) {
-            TerminalUI.error("Error al recuperar los clientes: " + e.getMessage());
+            // Cambiado error por exception para ser coherentes
+            TerminalUI.exception("Error al recuperar los clientes: " + e.getMessage());
         }
+        TerminalUI.sciFiDivider(); // Añadido
     }
 
     private void obtenerClientesPremium() {
@@ -317,6 +318,7 @@ public class Vista {
         } catch (DAOException e) {
             TerminalUI.exception(e.getMessage());
         }
+        TerminalUI.sciFiDivider(); // Añadido
     }
 
     private void eliminarCliente() {
@@ -384,24 +386,12 @@ public class Vista {
     private void anadirPedido() {
         TerminalUI.sectionTitle("AÑADIR PEDIDO");
         String emailCliente = leerTextoNoVacio("Email del cliente: ");
-
-        try {
-            controlador.emailValido(emailCliente);
-        } catch (EmailInvalidoException e) {
-            TerminalUI.exception(e.getMessage());
-            return;
-        }
-
         Cliente cliente = null;
 
         try {
             cliente = controlador.buscarCliente(emailCliente);
             TerminalUI.info("Cliente encontrado.");
             TerminalUI.showClientCard(cliente);
-
-        } catch (EmailInvalidoException | DAOException e) {
-            TerminalUI.exception(e.getMessage());
-            return;
 
         } catch (RecursoNoEncontradoException e) {
             TerminalUI.warning("El cliente no existe. ¿Desea crearlo? (s/n): ");
@@ -417,8 +407,6 @@ public class Vista {
                 try {
                     cliente = controlador.anadirCliente(emailCliente, nombre, domicilio, nif, tipoSeleccionado);
                     TerminalUI.success("¡Cliente creado correctamente!");
-                    TerminalUI.showClientsTable(List.of(cliente));
-
                 } catch (TipoClienteInvalidoException | DAOException | EmailInvalidoException ex) {
                     TerminalUI.exception(ex.getMessage());
                     return;
@@ -427,36 +415,26 @@ public class Vista {
                 TerminalUI.error("Operación cancelada.");
                 return;
             }
-        }
-
-        TerminalUI.info("Procedemos a la creación del pedido.");
-        String codigoArticulo = leerTextoNoVacio("Código del artículo: ");
-
-        Articulo articulo = null;
-        try {
-            articulo = controlador.buscarArticulo(codigoArticulo);
-            TerminalUI.showArticleCard(articulo);
-        } catch (RecursoNoEncontradoException | DAOException e) {
+        } catch (EmailInvalidoException | DAOException e) {
             TerminalUI.exception(e.getMessage());
             return;
         }
 
-        int cantidad = leerEntero("Cantidad: ");
-        int tiempoTotal = articulo.getTiempoPreparacionMin() * cantidad;
-
         try {
-            Pedido pedido = controlador.anadirPedido(emailCliente, codigoArticulo, cantidad);
-            Articulo articuloActualizado = controlador.buscarArticulo(codigoArticulo);
+            TerminalUI.info("--- DATOS DEL PEDIDO ---");
+            String codigoArticulo = leerTextoNoVacio("Código del artículo: ");
+            int cantidad = leerEntero("Cantidad: ");
 
-            TerminalUI.success("Pedido creado correctamente para " + cliente.getNombre() + ".");
-            TerminalUI.info("Tiempo estimado: " + tiempoTotal + " minutos");
-            TerminalUI.info("Stock restante del artículo: " + articuloActualizado.getCantidadDisponible() + " unidades");
-            TerminalUI.showOrderCard(pedido);
-            TerminalUI.spotlight("OPERACIÓN COMPLETADA CON ÉXITO");
+            Pedido pedidoRealizado = controlador.anadirPedido(emailCliente, codigoArticulo, cantidad);
 
-        } catch (EmailInvalidoException | RecursoNoEncontradoException | DAOException e) {
+            TerminalUI.success("¡Pedido realizado con éxito!");
+            TerminalUI.showOrderCard(pedidoRealizado);
+
+        } catch (DAOException | RecursoNoEncontradoException | EmailInvalidoException e) {
             TerminalUI.exception(e.getMessage());
         }
+
+        TerminalUI.sciFiDivider();
     }
 
     private void eliminarPedido() {
@@ -466,28 +444,45 @@ public class Vista {
 
         try {
             controlador.eliminarPedido(numeroPedido);
+
             TerminalUI.success("¡Pedido eliminado correctamente!");
             TerminalUI.spotlight("PEDIDO CANCELADO");
-        } catch (RecursoNoEncontradoException | PedidoNoCancelableException | DAOException e) {
+
+        } catch (RecursoNoEncontradoException | PedidoNoCancelableException e) {
             TerminalUI.exception(e.getMessage());
+
+        } catch (DAOException e) {
+            TerminalUI.exception(e.getMessage());
+
         }
+
+        TerminalUI.sciFiDivider();
     }
 
     private void mostrarPedidosPendientes() {
         TerminalUI.sectionTitle("PEDIDOS PENDIENTES");
-        String emailFiltro = leerTextoOpcional("Filtrar por email del cliente (dejar vacío para todos): ");
+
+        String email = leerTextoOpcional("Introduce email del cliente (o deja vacío para ver todos): ");
 
         try {
-            List<Pedido> pedidos = controlador.obtenerPedidosPendientes(emailFiltro);
+            List<Pedido> pendientes = controlador.obtenerPedidosPendientes(email);
 
-            if (pedidos.isEmpty()) {
-                TerminalUI.empty("No hay pedidos pendientes que mostrar.");
+            if (pendientes.isEmpty()) {
+                TerminalUI.warning("No hay pedidos pendientes actualmente.");
             } else {
-                TerminalUI.showOrdersTable(pedidos);
+                TerminalUI.showOrdersTable(pendientes);
+                TerminalUI.info("Total de pedidos encontrados: " + pendientes.size());
             }
-        } catch (EmailInvalidoException | RecursoNoEncontradoException | DAOException e) {
+
+        } catch (EmailInvalidoException e) {
             TerminalUI.exception(e.getMessage());
+        } catch (RecursoNoEncontradoException e) {
+            TerminalUI.exception("El cliente no existe: " + e.getMessage());
+        } catch (DAOException e) {
+            TerminalUI.exception("Error de base de datos: " + e.getMessage());
         }
+
+        TerminalUI.sciFiDivider();
     }
 
     private void mostrarPedidosEnviados() {
@@ -591,7 +586,7 @@ public class Vista {
     }
 
     private void imprimirClientes(String mensajePersonalizado, List<Cliente> clientes) {
-        if (clientes.isEmpty()) {
+        if (clientes == null || clientes.isEmpty()) {
             TerminalUI.empty(mensajePersonalizado);
         } else {
             TerminalUI.showClientsTable(clientes);

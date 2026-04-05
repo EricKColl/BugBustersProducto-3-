@@ -18,13 +18,14 @@ import java.util.List;
 
 public class Controlador {
 
+    private DAOFactory factory;
     private PedidoDAO pedidoDAO;
     private ClienteDAO clienteDAO;
     private ArticuloDAO articuloDAO;
 
     public Controlador() {
         try {
-            DAOFactory factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
+            this.factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
             this.clienteDAO = factory.getClienteDAO();
             this.articuloDAO = factory.getArticuloDAO();
             this.pedidoDAO = factory.getPedidoDAO();
@@ -59,17 +60,29 @@ public class Controlador {
             );
         }
 
-        Pedido nuevoPedido = new Pedido(0, cliente, articulo, cantidad, LocalDateTime.now(), "PENDIENTE");
-        pedidoDAO.insertar(nuevoPedido);
+        try {
+            factory.iniciarTransaccion();
 
-        return nuevoPedido;
+            Pedido nuevoPedido = new Pedido(0, cliente, articulo, cantidad, LocalDateTime.now(), "PENDIENTE");
+
+            pedidoDAO.insertar(nuevoPedido);
+            factory.confirmarTransaccion();
+            return nuevoPedido;
+
+        } catch (DAOException e) {
+            factory.cancelarTransaccion();
+            throw e;
+        } catch (Exception e) {
+            factory.cancelarTransaccion();
+            throw new DAOException("Error inesperado al procesar el pedido: " + e.getMessage());
+        }
     }
 
     public void eliminarPedido(int idPedido) throws DAOException, RecursoNoEncontradoException, PedidoNoCancelableException {
+
         sincronizarEstadosAutomaticos();
 
         Pedido pedido = pedidoDAO.obtenerPorId(idPedido);
-
         if (pedido == null) {
             throw new RecursoNoEncontradoException("Pedido", String.valueOf(idPedido));
         }
@@ -78,25 +91,33 @@ public class Controlador {
             throw new PedidoNoCancelableException(idPedido);
         }
 
-        pedidoDAO.eliminar(idPedido);
+        try {
+            factory.iniciarTransaccion();
+            pedidoDAO.eliminar(idPedido);
+            factory.confirmarTransaccion();
+
+        } catch (DAOException e) {
+            factory.cancelarTransaccion();
+            throw e;
+        } catch (Exception e) {
+            factory.cancelarTransaccion();
+            throw new DAOException("Error crítico de base de datos: " + e.getMessage());
+        }
     }
 
     public List<Pedido> obtenerPedidosPendientes(String email)
             throws DAOException, RecursoNoEncontradoException, EmailInvalidoException {
-        sincronizarEstadosAutomaticos();
-        int idFiltro = 0;
 
+        sincronizarEstadosAutomaticos();
+
+        int idCliente = 0;
         if (email != null && !email.trim().isEmpty()) {
             emailValido(email);
             Cliente c = buscarCliente(email);
-            idFiltro = c.getIdCliente();
-
-            if (idFiltro <= 0) {
-                throw new DAOException("El cliente encontrado tiene un ID interno no válido.", new SQLException());
-            }
+            idCliente = c.getIdCliente();
         }
 
-        return pedidoDAO.obtenerPedidosPendientes(idFiltro);
+        return pedidoDAO.obtenerPedidosPendientes(idCliente);
     }
 
     public List<Pedido> obtenerPedidosEnviados(String email)
@@ -144,15 +165,33 @@ public class Controlador {
         pedidoDAO.actualizarEstado(idPedido, estadoNuevo);
     }
 
-    private void sincronizarEstadosAutomaticos() throws DAOException {
-        List<Pedido> pedidos = pedidoDAO.obtenerTodos();
+    public void sincronizarEstadosAutomaticos() throws DAOException {
+        try {
+            List<Pedido> pendientes = pedidoDAO.obtenerPedidosPendientes(0);
 
-        for (Pedido pedido : pedidos) {
-            if (pedido.debeMarcarseComoEnviadoAutomaticamente()) {
-                if (!"ENVIADO".equalsIgnoreCase(pedido.getEstado())) {
-                    pedidoDAO.actualizarEstado(pedido.getNumeroPedido(), "ENVIADO");
+            LocalDateTime ahora = LocalDateTime.now();
+
+            factory.iniciarTransaccion();
+
+            for (Pedido p : pendientes) {
+                // Calculamos: fechaPedido + minutosPreparacion
+                LocalDateTime fechaEnvioEstimada = p.getFechaHora().plusMinutes(
+                        p.getArticulo().getTiempoPreparacionMin()
+                );
+
+                if (ahora.isAfter(fechaEnvioEstimada)) {
+                    pedidoDAO.actualizarEstado(p.getNumeroPedido(), "ENVIADO");
                 }
             }
+
+            factory.confirmarTransaccion();
+
+        } catch (DAOException e) {
+            factory.cancelarTransaccion();
+            throw e;
+        } catch (Exception e) {
+            factory.cancelarTransaccion();
+            throw new DAOException("Error inesperado en sincronización: " + e.getMessage());
         }
     }
 
@@ -162,23 +201,35 @@ public class Controlador {
         }
     }
 
-    public Cliente anadirCliente(String email, String nombre, String domicilio, String nif, int tipo)
-            throws EmailInvalidoException, DAOException, TipoClienteInvalidoException {
+    public Cliente anadirCliente(String email, String nombre, String domicilio, String nif, int tipoCliente)
+            throws DAOException, EmailInvalidoException, TipoClienteInvalidoException {
 
-        emailValido(email);
+        try {
+            emailValido(email);
+            factory.iniciarTransaccion();
 
-        Cliente nuevoCliente;
-        if (tipo == 2) {
-            nuevoCliente = new ClientePremium(email, nombre, domicilio, nif);
-        } else if (tipo == 1) {
-            nuevoCliente = new ClienteEstandar(email, nombre, domicilio, nif);
-        } else {
-            throw new TipoClienteInvalidoException("El tipo de cliente debe ser 1 (Estándar) o 2 (Premium)");
+            Cliente nuevoCliente;
+            if (tipoCliente == 1) {
+                nuevoCliente = new ClienteEstandar(email, nombre, domicilio, nif);
+            } else if (tipoCliente == 2) {
+                nuevoCliente = new ClientePremium(email, nombre, domicilio, nif);
+            } else {
+                throw new TipoClienteInvalidoException("Opción de tipo de cliente no válida: " + tipoCliente);
+            }
+
+            clienteDAO.insertar(nuevoCliente);
+
+            factory.confirmarTransaccion();
+
+            return nuevoCliente;
+
+        } catch (DAOException | EmailInvalidoException | TipoClienteInvalidoException e) {
+            factory.cancelarTransaccion();
+            throw e;
+        } catch (Exception e) {
+            factory.cancelarTransaccion();
+            throw new DAOException("Error inesperado al añadir cliente: " + e.getMessage());
         }
-
-        clienteDAO.insertar(nuevoCliente);
-
-        return nuevoCliente;
     }
 
     public void existeCliente(String email) throws DAOException {
@@ -231,42 +282,42 @@ public class Controlador {
         return articulo;
     }
 
-    public void anadirArticulo(String codigo, String descripcion, double precioVenta,
-                               double gastosEnvio, int tiempoPreparacionMin, int cantidadDisponible)
-            throws DAOException {
+    public Articulo anadirArticulo(String codigo, String descripcion, double precio,
+                                   double envio, int tiempo, int stock) throws DAOException {
 
         if (articuloDAO.obtenerPorId(codigo) != null) {
-            throw new DAOException("Operación cancelada: El artículo con código '" + codigo + "' ya existe.");
+            throw new DAOException("No se puede crear: El artículo con código '" + codigo + "' ya existe.");
         }
 
-        if (cantidadDisponible < 0) {
-            throw new DAOException("La cantidad disponible no puede ser negativa.", new SQLException());
+        try {
+            factory.iniciarTransaccion();
+            Articulo nuevo = new Articulo(codigo, descripcion, precio, envio, tiempo, stock);
+            articuloDAO.insertar(nuevo);
+            factory.confirmarTransaccion();
+            return nuevo;
+        } catch (DAOException e) {
+            factory.cancelarTransaccion();
+            throw e;
         }
-
-        Articulo articulo = new Articulo(
-                codigo,
-                descripcion,
-                precioVenta,
-                gastosEnvio,
-                tiempoPreparacionMin,
-                cantidadDisponible
-        );
-
-        articuloDAO.insertar(articulo);
     }
 
-    public void sumarStockArticulo(String codigo, int cantidad) throws DAOException, RecursoNoEncontradoException {
-        Articulo articulo = articuloDAO.obtenerPorId(codigo);
+    public Articulo sumarStockArticulo(String codigo, int cantidad) throws DAOException, RecursoNoEncontradoException {
+        try {
+            factory.iniciarTransaccion();
 
-        if (articulo == null) {
-            throw new RecursoNoEncontradoException("Articulo", codigo);
+            Articulo articulo = articuloDAO.obtenerPorId(codigo);
+            if (articulo == null) throw new RecursoNoEncontradoException("Articulo", codigo);
+
+            articuloDAO.sumarStock(codigo, cantidad);
+
+            Articulo actualizado = articuloDAO.obtenerPorId(codigo);
+
+            factory.confirmarTransaccion();
+            return actualizado;
+        } catch (DAOException e) {
+            factory.cancelarTransaccion();
+            throw e;
         }
-
-        if (cantidad <= 0) {
-            throw new DAOException("La cantidad a sumar debe ser mayor que 0.", new SQLException());
-        }
-
-        articuloDAO.sumarStock(codigo, cantidad);
     }
 
     public void eliminarArticulo(String codigo) throws RecursoNoEncontradoException, DAOException {

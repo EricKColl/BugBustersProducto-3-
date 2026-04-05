@@ -24,4 +24,9 @@ public abstract class DAOFactory {
     public abstract ArticuloDAO getArticuloDAO() throws DAOException;
     public abstract ClienteDAO getClienteDAO() throws DAOException;
     public abstract Connection getConnection() throws DAOException;
+
+    // Gestión de transacciones
+    public abstract void iniciarTransaccion() throws DAOException;
+    public abstract void confirmarTransaccion() throws DAOException;
+    public abstract void cancelarTransaccion() throws DAOException;
 }
