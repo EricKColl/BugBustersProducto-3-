@@ -16,7 +16,4 @@ public class TipoClienteInvalidoException extends Exception {
     public TipoClienteInvalidoException(int tipo) {
         super("Tipo de cliente inválido: " + tipo + ". Debes escribir 1 para Estándar o 2 para Premium.");
     }
-    public TipoClienteInvalidoException(String mensaje) {
-        super(mensaje);
-    }
 }

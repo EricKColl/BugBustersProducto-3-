@@ -214,7 +214,7 @@ public class Controlador {
             } else if (tipoCliente == 2) {
                 nuevoCliente = new ClientePremium(email, nombre, domicilio, nif);
             } else {
-                throw new TipoClienteInvalidoException("Opción de tipo de cliente no válida: " + tipoCliente);
+                throw new TipoClienteInvalidoException(tipoCliente);
             }
 
             clienteDAO.insertar(nuevoCliente);
