@@ -1,9 +1,11 @@
 -- =========================================================
--- BUGBUSTERS · PRODUCTO 3
+-- BUGBUSTERS · PRODUCTO 4
+-- IMPLEMENTACIÓN MEDIANTE ORM
 -- DATOS DE PRUEBA
 -- =========================================================
--- Este script inserta datos de prueba coherentes con la
--- versión actual del proyecto.
+-- Este script inserta datos de prueba iniciales para el
+-- Producto 4, manteniendo la misma base funcional del
+-- Producto 3 como punto de partida.
 --
 -- Orden recomendado de ejecución:
 --   1. Tablas Base de Datos.sql
@@ -11,12 +13,13 @@
 --   3. Datos-Prueba.sql
 --
 -- Importante:
--- Los artículos se insertan con stock inicial.
--- Los pedidos se crean llamando al procedimiento insertar_pedido,
--- por lo que el stock se descuenta automáticamente.
+--   - Los artículos se insertan con stock inicial
+--   - Los pedidos se crean mediante el procedimiento
+--     insertar_pedido, por lo que el stock se descuenta
+--     automáticamente y queda consistente
 -- =========================================================
 
-USE producto3;
+USE producto4;
 
 -- =========================================================
 -- CLIENTES
@@ -30,7 +33,7 @@ INSERT INTO clientes (email, nombre, domicilio, nif, tipo_cliente) VALUES
 ('david.rodriguez@bugbusters.com', 'David Rodríguez Torres', 'Calle Larios 22, Málaga', '67890123F', 'estandar');
 
 -- =========================================================
--- ARTÍCULOS
+-- ARTICULOS
 -- Stock inicial antes de descontar los pedidos históricos
 -- =========================================================
 INSERT INTO articulos (
@@ -51,7 +54,7 @@ INSERT INTO articulos (
 -- =========================================================
 -- PEDIDOS
 -- Se insertan mediante procedimiento para que el stock
--- se descuente automáticamente y quede coherente.
+-- se descuente automáticamente y quede coherente
 -- =========================================================
 CALL insertar_pedido(1, 1, 2, '2026-03-20 12:34:25', 'ENVIADO', @pedido_1);
 CALL insertar_pedido(2, 3, 1, '2026-03-21 09:15:10', 'ENVIADO', @pedido_2);
@@ -61,14 +64,15 @@ CALL insertar_pedido(4, 5, 2, '2026-03-22 16:20:30', 'ENVIADO', @pedido_5);
 CALL insertar_pedido(2, 6, 1, '2026-03-23 10:10:10', 'ENVIADO', @pedido_6);
 
 -- =========================================================
--- COMPROBACIÓN OPCIONAL
+-- CONSULTAS DE COMPROBACION OPCIONALES
 -- =========================================================
 -- SELECT * FROM clientes;
 -- SELECT * FROM articulos;
 -- SELECT * FROM pedidos;
 
 -- =========================================================
--- LIMPIEZA TOTAL (quitar '--' para ejecutar)
+-- LIMPIEZA TOTAL OPCIONAL
+-- Quitar '--' solo si quieres vaciar completamente los datos
 -- =========================================================
 -- SET FOREIGN_KEY_CHECKS = 0;
 -- TRUNCATE TABLE pedidos;
