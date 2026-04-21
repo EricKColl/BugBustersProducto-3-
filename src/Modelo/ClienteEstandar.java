@@ -10,11 +10,13 @@ package Modelo;
  * @version 1.0
  * @since 1.0
  */
-
+@Entity
+@DiscriminatorValue("Estandar")
 public class ClienteEstandar extends Cliente{
     public ClienteEstandar (String email, String nombre, String domicilio, String nif){
         super(email, nombre, domicilio, nif);
     }
+    public ClienteEstandar(){}
 
     @Override
     public double calcularCuota() {

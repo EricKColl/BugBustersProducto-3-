@@ -10,10 +10,14 @@ package Modelo;
  * @version 1.0
  * @since 1.0
  */
+@Entity
+@Table(name = "Articulos")
 public class Articulo {
 
+    @Id
     private String codigo;
     private String descripcion;
+    @Column(precision = 10, scale = 2)
     private double precioVenta;
     private double gastosEnvio;
     private int tiempoPreparacionMin; // minutos
@@ -26,6 +30,8 @@ public class Articulo {
         this.gastosEnvio = gastosEnvio;
         this.tiempoPreparacionMin = tiempoPreparacionMin;
         this.cantidadDisponible = 0;
+    }
+    public Articulo() {
     }
 
     public Articulo(String codigo, String descripcion, double precioVenta, double gastosEnvio,

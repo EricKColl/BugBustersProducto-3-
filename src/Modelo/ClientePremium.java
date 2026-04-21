@@ -10,7 +10,8 @@ package Modelo;
  * @version 1.0
  * @since 1.0
  */
-
+@Entity
+@DiscriminatorValue("Premium")
 public class ClientePremium extends Cliente {
     /*
     Estamos determinando que la lógica de negocio es que no habrá descuentos y cuotas individuales entre clientes premium
@@ -20,6 +21,7 @@ public class ClientePremium extends Cliente {
     public ClientePremium (String email, String nombre, String domicilio, String nif) {
         super(email, nombre, domicilio, nif);
     }
+    public ClientePremium(){}
 
     @Override
     public double calcularCuota() {

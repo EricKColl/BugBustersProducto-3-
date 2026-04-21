@@ -11,11 +11,19 @@ package Modelo;
  * @since 1.0
  */
 
+@Entity
+@Table(name = "Clientes")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "tipo_cliente")
 public abstract class Cliente {
+    @Column(unique=true, nullable=false)
     private String email;
     private String nombre;
     private String domicilio;
+    @Column(unique=true, nullable=false)
     private String nif;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int idCliente;
 
     public Cliente (String email, String nombre, String domicilio, String nif){
@@ -24,6 +32,7 @@ public abstract class Cliente {
         this.domicilio = domicilio;
         this.nif = nif;
     }
+    public Cliente(){}
 
     public String getEmail(){
         return email;
@@ -59,9 +68,6 @@ public abstract class Cliente {
 
     public int getIdCliente() {
         return idCliente;
-    }
-    public void setIdCliente(int idCliente) {
-        this.idCliente = idCliente;
     }
     public abstract double calcularCuota();
     public abstract double descuentoEnvio();
