@@ -1,5 +1,10 @@
 package Modelo;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 /**
  * Clase que representa un artículo de la tienda.
  *
@@ -16,9 +21,12 @@ public class Articulo {
 
     @Id
     private String codigo;
+
     private String descripcion;
+
     @Column(precision = 10, scale = 2)
     private double precioVenta;
+
     private double gastosEnvio;
     private int tiempoPreparacionMin; // minutos
     private int cantidadDisponible;
@@ -31,6 +39,7 @@ public class Articulo {
         this.tiempoPreparacionMin = tiempoPreparacionMin;
         this.cantidadDisponible = 0;
     }
+
     public Articulo() {
     }
 

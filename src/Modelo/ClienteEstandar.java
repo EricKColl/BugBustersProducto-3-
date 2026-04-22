@@ -1,5 +1,8 @@
 package Modelo;
 
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+
 /**
  * Clase que representa un cliente estándar de la tienda.
  *
@@ -12,11 +15,14 @@ package Modelo;
  */
 @Entity
 @DiscriminatorValue("Estandar")
-public class ClienteEstandar extends Cliente{
-    public ClienteEstandar (String email, String nombre, String domicilio, String nif){
+public class ClienteEstandar extends Cliente {
+
+    public ClienteEstandar(String email, String nombre, String domicilio, String nif) {
         super(email, nombre, domicilio, nif);
     }
-    public ClienteEstandar(){}
+
+    public ClienteEstandar() {
+    }
 
     @Override
     public double calcularCuota() {
@@ -30,7 +36,7 @@ public class ClienteEstandar extends Cliente{
 
     @Override
     public String toString() {
-        return "[Cliente Estandar] "+
+        return "[Cliente Estandar] " +
                 "Email: " + getEmail() +
                 " | Nombre: " + getNombre() +
                 " | Domicilio: " + getDomicilio() +

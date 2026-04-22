@@ -1,5 +1,8 @@
 package Modelo;
 
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+
 /**
  * Clase que representa un cliente premium de la tienda.
  *
@@ -13,15 +16,13 @@ package Modelo;
 @Entity
 @DiscriminatorValue("Premium")
 public class ClientePremium extends Cliente {
-    /*
-    Estamos determinando que la lógica de negocio es que no habrá descuentos y cuotas individuales entre clientes premium
-    , tampoco se va a permitir el canvio de las cifras a través de la aplicación.
-    Si en algún momento se quiere cambiar la cantidad, debermos editar el valor de aquí.
-     */
-    public ClientePremium (String email, String nombre, String domicilio, String nif) {
+
+    public ClientePremium(String email, String nombre, String domicilio, String nif) {
         super(email, nombre, domicilio, nif);
     }
-    public ClientePremium(){}
+
+    public ClientePremium() {
+    }
 
     @Override
     public double calcularCuota() {
@@ -35,7 +36,7 @@ public class ClientePremium extends Cliente {
 
     @Override
     public String toString() {
-        return "[Cliente Premium] "+
+        return "[Cliente Premium] " +
                 "Email: " + getEmail() +
                 " | Nombre: " + getNombre() +
                 " | Domicilio: " + getDomicilio() +

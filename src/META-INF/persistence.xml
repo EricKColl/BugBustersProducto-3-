@@ -7,6 +7,12 @@
     <persistence-unit name="Producto4PU" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
+        <class>Modelo.Articulo</class>
+        <class>Modelo.Cliente</class>
+        <class>Modelo.ClienteEstandar</class>
+        <class>Modelo.ClientePremium</class>
+        <class>Modelo.Pedido</class>
+
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
 
         <properties>

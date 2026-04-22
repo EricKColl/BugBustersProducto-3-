@@ -1,22 +1,43 @@
 package Modelo;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Pedidos")
 public class Pedido {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int idPedido;
+
     @ManyToOne
-    @JoinColumn(name ="id_cliente_fk", nullable = false)
+    @JoinColumn(name = "id_cliente_fk", nullable = false)
     private Cliente cliente;
+
     @ManyToOne
-    @JoinColumn(name="codigo_Articulo_fk", nullable = false)
+    @JoinColumn(name = "codigo_Articulo_fk", nullable = false)
     private Articulo articulo;
+
     private int cantidad;
     private LocalDateTime fechaHora;
     private String estado;
+
+    public Pedido(int idPedido, Cliente cliente, Articulo articulo, int cantidad, LocalDateTime fechaHora, String estado) {
+        this.idPedido = idPedido;
+        this.cliente = cliente;
+        this.articulo = articulo;
+        this.cantidad = cantidad;
+        this.fechaHora = fechaHora;
+        this.estado = estado;
+    }
 
     public Pedido(Cliente cliente, Articulo articulo, int cantidad, LocalDateTime fechaHora, String estado) {
         this.cliente = cliente;
@@ -25,10 +46,15 @@ public class Pedido {
         this.fechaHora = fechaHora;
         this.estado = estado;
     }
-    public Pedido(){}
+
+    public Pedido() {
+    }
 
     public boolean puedeCancelar() {
-        if (!"PENDIENTE".equalsIgnoreCase(this.estado)) return false;
+        if (!"PENDIENTE".equalsIgnoreCase(this.estado)) {
+            return false;
+        }
+
         LocalDateTime limite = this.fechaHora.plusMinutes(this.articulo.getTiempoPreparacionMin());
         return LocalDateTime.now().isBefore(limite);
     }
