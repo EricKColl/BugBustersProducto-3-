@@ -9,12 +9,12 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import java.util.List;
 
-public class ClienteDAOMySQL implements ClienteDAO {
+public class ClienteDAOJPA implements ClienteDAO {
 
     // Sustituimos Connection por EntityManager
     private final EntityManager em;
 
-    public ClienteDAOMySQL(EntityManager em) {
+    public ClienteDAOJPA(EntityManager em) {
         this.em = em;
     }
 
@@ -125,6 +125,14 @@ public class ClienteDAOMySQL implements ClienteDAO {
             return null; // Comportamiento esperado si no hay resultados
         } catch (Exception e) {
             throw new DAOException("Error al buscar cliente por email", e);
+        }
+    }
+    @Override
+    public void actualizar(Cliente cliente) throws DAOException {
+        try {
+            em.merge(cliente);
+        } catch (Exception e) {
+            throw new DAOException("Error al actualizar el cliente: " + e.getMessage(), e);
         }
     }
 }

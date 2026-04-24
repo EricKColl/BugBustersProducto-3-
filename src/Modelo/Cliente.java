@@ -10,6 +10,8 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
 
+import java.math.BigDecimal;
+
 /**
  * Clase abstracta que representa un cliente genérico de la tienda.
  *
@@ -89,9 +91,9 @@ public abstract class Cliente {
         this.idCliente = idCliente;
     }
 
-    public abstract double calcularCuota();
+    public abstract BigDecimal calcularCuota();
 
-    public abstract double descuentoEnvio();
+    public abstract BigDecimal descuentoEnvio();
 
     public boolean esPremium() {
         return this instanceof ClientePremium;

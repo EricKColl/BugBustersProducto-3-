@@ -1,69 +1,47 @@
 package Factory;
 
 import DAO.Interfaces.ArticuloDAO;
-import DAO.MySQL.ArticuloDAOMySQL;
+import DAO.MySQL.ArticuloDAOJPA;
 import Excepciones.DAOException;
 import DAO.Interfaces.PedidoDAO;
-import DAO.MySQL.PedidoDAOMySQL;
+import DAO.MySQL.PedidoDAOJPA;
 import DAO.Interfaces.ClienteDAO;
-import DAO.MySQL.ClienteDAOMySQL;
+import DAO.MySQL.ClienteDAOJPA;
+import Util.JPAUtil;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
 
 public class MySQLDAOFactory extends DAOFactory {
 
-    // El factory de JPA que leerá el persistence.xml
-    private static EntityManagerFactory emf;
-    private EntityManager em;
-
-    public MySQLDAOFactory() {
-        if (emf == null) {
-            // Inicia JPA usando el nombre del persistence-unit
-            emf = Persistence.createEntityManagerFactory("Producto4PU");
-        }
-    }
+    private EntityManager em; // Guardamos el EntityManager activo
 
     @Override
     public EntityManager getEntityManager() throws DAOException {
-        // Si no hay un EntityManager o se cerró, creamos uno nuevo
+        // Si no hay un EntityManager o se cerró, creamos uno nuevo de JPAUtil
         if (em == null || !em.isOpen()) {
-            em = emf.createEntityManager();
+            em = JPAUtil.getEntityManager();
         }
         return em;
     }
 
     @Override
     public ArticuloDAO getArticuloDAO() throws DAOException {
-        // Pedimos la instancia única de ConexionBD
         EntityManager emActual = getEntityManager();
-
-        //Nos aseguramos que esté la base de datos conectada.
-        // (JPA gestiona la conexión automáticamente bajo demanda)
-
-        // Construimos el DAO de MySQL y le inyectamos la conexión abierta
-        return new ArticuloDAOMySQL(emActual);
+        // Construimos el DAO y le inyectamos el EntityManager
+        return new ArticuloDAOJPA(emActual);
     }
 
     @Override
     public PedidoDAO getPedidoDAO() throws DAOException{
-        // Pedimos la instancia única de ConexionBD (Ahora EntityManager)
         EntityManager emActual = getEntityManager();
-
-        //Nos aseguramos que esté la base de datos conectada.
-
-        return new PedidoDAOMySQL(emActual);
+        return new PedidoDAOJPA(emActual);
     }
 
     @Override
     public ClienteDAO getClienteDAO() throws DAOException {
-        // Pedimos la instancia única de ConexionBD (Ahora EntityManager)
+        // Pedimos la instancia única de EntityManager
         EntityManager emActual = getEntityManager();
-
-        //Nos aseguramos que esté la base de datos conectada.
-
-        return new ClienteDAOMySQL(emActual);
+        return new ClienteDAOJPA(emActual);
     }
 
     @Override

@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 
 /**
  * Clase que representa un artículo de la tienda.
@@ -21,17 +22,18 @@ public class Articulo {
 
     @Id
     private String codigo;
-
     private String descripcion;
 
-    @Column(precision = 10, scale = 2)
-    private double precioVenta;
+    @Column(name = "precioVenta", precision = 10, scale = 2)
+    private BigDecimal precioVenta;
 
-    private double gastosEnvio;
+    @Column(name = "gastosEnvio", precision = 10, scale = 2)
+    private BigDecimal gastosEnvio;
+
     private int tiempoPreparacionMin; // minutos
     private int cantidadDisponible;
 
-    public Articulo(String codigo, String descripcion, double precioVenta, double gastosEnvio, int tiempoPreparacionMin) {
+    public Articulo(String codigo, String descripcion, BigDecimal precioVenta, BigDecimal gastosEnvio, int tiempoPreparacionMin) {
         this.codigo = codigo;
         this.descripcion = descripcion;
         this.precioVenta = precioVenta;
@@ -43,7 +45,7 @@ public class Articulo {
     public Articulo() {
     }
 
-    public Articulo(String codigo, String descripcion, double precioVenta, double gastosEnvio,
+    public Articulo(String codigo, String descripcion, BigDecimal precioVenta, BigDecimal gastosEnvio,
                     int tiempoPreparacionMin, int cantidadDisponible) {
         this.codigo = codigo;
         this.descripcion = descripcion;
@@ -69,19 +71,19 @@ public class Articulo {
         this.descripcion = descripcion;
     }
 
-    public double getPrecioVenta() {
+    public BigDecimal getPrecioVenta() {
         return precioVenta;
     }
 
-    public void setPrecioVenta(double precioVenta) {
+    public void setPrecioVenta(BigDecimal precioVenta) {
         this.precioVenta = precioVenta;
     }
 
-    public double getGastosEnvio() {
+    public BigDecimal getGastosEnvio() {
         return gastosEnvio;
     }
 
-    public void setGastosEnvio(double gastosEnvio) {
+    public void setGastosEnvio(BigDecimal gastosEnvio) {
         this.gastosEnvio = gastosEnvio;
     }
 

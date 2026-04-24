@@ -8,12 +8,12 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import java.util.List;
 
-public class ArticuloDAOMySQL implements ArticuloDAO {
+public class ArticuloDAOJPA implements ArticuloDAO {
 
     // Sustituimos Connection por EntityManager
     private final EntityManager em;
 
-    public ArticuloDAOMySQL(EntityManager em) {
+    public ArticuloDAOJPA(EntityManager em) {
         this.em = em;
     }
 
@@ -92,6 +92,15 @@ public class ArticuloDAOMySQL implements ArticuloDAO {
             em.remove(articulo);
         } catch (Exception e) {
             throw new DAOException("Error al ejecutar eliminar artículo: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void actualizar(Articulo articulo) throws DAOException {
+        try {
+            em.merge(articulo);
+        } catch (Exception e) {
+            throw new DAOException("Error al actualizar el artículo: " + e.getMessage(), e);
         }
     }
 }

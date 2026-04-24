@@ -8,6 +8,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -63,12 +64,17 @@ public class Pedido {
         return "PENDIENTE".equalsIgnoreCase(this.estado) && !puedeCancelar();
     }
 
-    public double calcularTotal() {
-        double descuento = cliente.descuentoEnvio();
-        double precioTotalArticulos = articulo.getPrecioVenta() * cantidad;
-        double gastosEnvioFinal = articulo.getGastosEnvio() * (1 - descuento);
+    public BigDecimal calcularTotal() {
+        BigDecimal descuento = cliente.descuentoEnvio();
+        // Multiplicamos el precio del artículo por la cantidad
+        BigDecimal precioTotalArticulos = articulo.getPrecioVenta().multiply(BigDecimal.valueOf(cantidad));
+        // Calculamos (1 - descuento). Usamos BigDecimal.ONE que representa un "1" exacto.
+        BigDecimal multiplicadorEnvio = BigDecimal.ONE.subtract(descuento);
+        // Multiplicamos los gastos de envío base por el multiplicador
+        BigDecimal gastosEnvioFinal = articulo.getGastosEnvio().multiply(multiplicadorEnvio);
 
-        return precioTotalArticulos + gastosEnvioFinal;
+        // Sumamos el precio de los artículos más los gastos de envío finales
+        return precioTotalArticulos.add(gastosEnvioFinal);
     }
 
     public int getNumeroPedido() {

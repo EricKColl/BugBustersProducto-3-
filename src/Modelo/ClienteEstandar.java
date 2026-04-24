@@ -3,6 +3,8 @@ package Modelo;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 
+import java.math.BigDecimal;
+
 /**
  * Clase que representa un cliente estándar de la tienda.
  *
@@ -25,13 +27,13 @@ public class ClienteEstandar extends Cliente {
     }
 
     @Override
-    public double calcularCuota() {
-        return 0.0;
+    public BigDecimal calcularCuota() {
+        return BigDecimal.ZERO;
     }
 
     @Override
-    public double descuentoEnvio() {
-        return 0.0;
+    public BigDecimal descuentoEnvio() {
+        return BigDecimal.ZERO;
     }
 
     @Override

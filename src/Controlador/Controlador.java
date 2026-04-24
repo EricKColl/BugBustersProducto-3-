@@ -11,6 +11,7 @@ import Modelo.ClientePremium;
 import Modelo.Pedido;
 import Excepciones.DAOException;
 import Modelo.Excepciones.*;
+import java.math.BigDecimal;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -298,8 +299,8 @@ public class Controlador {
         return articulo;
     }
 
-    public Articulo anadirArticulo(String codigo, String descripcion, double precio,
-                                   double envio, int tiempo, int stock) throws DAOException {
+    public Articulo anadirArticulo(String codigo, String descripcion, BigDecimal precio,
+                                   BigDecimal envio, int tiempo, int stock) throws DAOException {
 
         if (articuloDAO.obtenerPorId(codigo) != null) {
             throw new DAOException("No se puede crear: El artículo con código '" + codigo + "' ya existe.");

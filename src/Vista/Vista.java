@@ -7,6 +7,7 @@ import Modelo.Cliente;
 import Modelo.Pedido;
 import Modelo.Excepciones.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Scanner;
 
@@ -120,8 +121,8 @@ public class Vista {
             // 2. Si NO existe, el controlador lanzó esta excepción y aquí procedemos al alta
             try {
                 String desc = leerTextoNoVacio("Descripción: ");
-                double precio = leerDouble("Precio: ");
-                double envio = leerDouble("Envío: ");
+                BigDecimal precio = leerBigDecimal("Precio: ");
+                BigDecimal envio = leerBigDecimal("Envío: ");
                 int tiempo = leerEntero("Minutos prep: ");
                 int stock = leerEntero("Stock inicial: ");
 
@@ -567,7 +568,7 @@ public class Vista {
         }
     }
 
-    private double leerDouble(String mensaje) {
+    private BigDecimal leerBigDecimal(String mensaje) {
         while (true) {
             TerminalUI.prompt(mensaje);
             String linea = teclado.nextLine().trim();
@@ -578,7 +579,7 @@ public class Vista {
             }
 
             try {
-                return Double.parseDouble(linea.replace(',', '.'));
+                return new BigDecimal(linea.replace(',', '.'));
             } catch (NumberFormatException e) {
                 TerminalUI.error("Debes introducir un número válido.\n");
             }
