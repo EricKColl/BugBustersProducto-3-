@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import java.math.BigDecimal;
 
 /**
@@ -21,16 +23,25 @@ import java.math.BigDecimal;
 public class Articulo {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_articulo")
+    private int idArticulo;
+
+    @Column(name = "codigo", unique = true, nullable = false)
     private String codigo;
+
     private String descripcion;
 
-    @Column(name = "precioVenta", precision = 10, scale = 2)
+    @Column(name = "precio_venta", precision = 10, scale = 2)
     private BigDecimal precioVenta;
 
-    @Column(name = "gastosEnvio", precision = 10, scale = 2)
+    @Column(name = "gastos_envio", precision = 10, scale = 2)
     private BigDecimal gastosEnvio;
 
+    @Column(name = "tiempo_preparacion")
     private int tiempoPreparacionMin; // minutos
+
+    @Column(name = "cantidad_disponible")
     private int cantidadDisponible;
 
     public Articulo(String codigo, String descripcion, BigDecimal precioVenta, BigDecimal gastosEnvio, int tiempoPreparacionMin) {
@@ -102,6 +113,10 @@ public class Articulo {
     public void setCantidadDisponible(int cantidadDisponible) {
         this.cantidadDisponible = cantidadDisponible;
     }
+
+    public int getIdArticulo() { return idArticulo; }
+
+    public void setIdArticulo(int idArticulo) { this.idArticulo = idArticulo; }
 
     @Override
     public String toString() {

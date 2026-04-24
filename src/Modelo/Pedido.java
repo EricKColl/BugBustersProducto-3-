@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -17,18 +18,22 @@ public class Pedido {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_pedido")
     private int idPedido;
 
     @ManyToOne
-    @JoinColumn(name = "id_cliente_fk", nullable = false)
+    @JoinColumn(name = "id_cliente", referencedColumnName = "id_cliente", nullable = false)
     private Cliente cliente;
 
     @ManyToOne
-    @JoinColumn(name = "codigo_Articulo_fk", nullable = false)
+    @JoinColumn(name = "id_articulo", referencedColumnName = "id_articulo", nullable = false)
     private Articulo articulo;
 
     private int cantidad;
+
+    @Column(name = "fecha_hora")
     private LocalDateTime fechaHora;
+
     private String estado;
 
     public Pedido(int idPedido, Cliente cliente, Articulo articulo, int cantidad, LocalDateTime fechaHora, String estado) {

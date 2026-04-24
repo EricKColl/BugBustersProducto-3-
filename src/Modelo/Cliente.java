@@ -28,6 +28,11 @@ import java.math.BigDecimal;
 @DiscriminatorColumn(name = "tipo_cliente")
 public abstract class Cliente {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_cliente")
+    private int idCliente;
+
     @Column(unique = true, nullable = false)
     private String email;
 
@@ -36,10 +41,6 @@ public abstract class Cliente {
 
     @Column(unique = true, nullable = false)
     private String nif;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int idCliente;
 
     public Cliente(String email, String nombre, String domicilio, String nif) {
         this.email = email;

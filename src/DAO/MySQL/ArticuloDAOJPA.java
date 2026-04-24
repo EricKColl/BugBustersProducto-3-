@@ -6,7 +6,9 @@ import Modelo.Articulo;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
+import jakarta.persistence.NoResultException;
 import java.util.List;
+
 
 public class ArticuloDAOJPA implements ArticuloDAO {
 
@@ -41,23 +43,31 @@ public class ArticuloDAOJPA implements ArticuloDAO {
 
     @Override
     public Articulo obtenerPorId(String codigo) throws DAOException {
-        // JPA busca automáticamente por la clave primaria (@Id)
         try {
-            return em.find(Articulo.class, codigo);
+            String jpql = "SELECT a FROM Articulo a WHERE a.codigo = :cod";
+            return em.createQuery(jpql, Articulo.class)
+                    .setParameter("cod", codigo)
+                    .getSingleResult();
+        } catch (NoResultException e) {
+            return null;
         } catch (Exception e) {
-            throw new DAOException("Error de JPA al buscar el artículo con código '" + codigo + "': " + e.getMessage(), e);
+            throw new DAOException("Error crítico en la base de datos", e);
         }
     }
 
     @Override
     public void sumarStock(String codigo, int cantidad) throws DAOException {
-        // En JPA simplemente obtenemos el objeto, modificamos su estado y lo actualizamos (merge)
         try {
-            Articulo articulo = em.find(Articulo.class, codigo);
+            Articulo articulo = obtenerPorId(codigo);
+
             if (articulo != null) {
                 articulo.setCantidadDisponible(articulo.getCantidadDisponible() + cantidad);
-                em.merge(articulo);
+                em.merge(articulo); // Esto guarda el cambio en la base de datos
+            } else {
+                throw new DAOException("No se puede sumar stock: el artículo '" + codigo + "' no existe.");
             }
+        } catch (DAOException e) {
+            throw e;
         } catch (Exception e) {
             throw new DAOException("Error al sumar stock del artículo: " + e.getMessage(), e);
         }
@@ -82,14 +92,16 @@ public class ArticuloDAOJPA implements ArticuloDAO {
             throw new DAOException("No se puede eliminar el artículo porque tiene pedidos asociados.");
         }
 
-        // Buscamos la entidad y si existe, la eliminamos del contexto
         try {
-            Articulo articulo = em.find(Articulo.class, codigo);
+            Articulo articulo = obtenerPorId(codigo);
+
             if (articulo == null) {
                 throw new DAOException("El artículo con código '" + codigo + "' no existe.");
             }
 
             em.remove(articulo);
+        } catch (DAOException e) {
+            throw e;
         } catch (Exception e) {
             throw new DAOException("Error al ejecutar eliminar artículo: " + e.getMessage(), e);
         }
