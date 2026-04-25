@@ -144,33 +144,30 @@ public class Controlador {
         return pedidoDAO.obtenerPedidosEnviados(idFiltro);
     }
 
-    public void cambiarEstadoPedido(int idPedido, String nuevoEstado)
+    public void marcarPedidoComoEnviado(int idPedido)
             throws DAOException, RecursoNoEncontradoException, CambioEstadoPedidoNoPermitidoException {
 
+        // 1. Sincronizamos estados por si otros pedidos han caducado
         sincronizarEstadosAutomaticos();
-        validarEstadoPedido(nuevoEstado);
 
+        // 2. Buscamos el pedido
         Pedido pedido = pedidoDAO.obtenerPorId(idPedido);
         if (pedido == null) {
             throw new RecursoNoEncontradoException("Pedido", String.valueOf(idPedido));
         }
 
-        String estadoActual = pedido.getEstado().toUpperCase();
-        String estadoNuevo = nuevoEstado.toUpperCase();
-
-        if (estadoActual.equals(estadoNuevo)) {
+        // 3. Validación de lógica de negocio: Si ya está enviado, lanzamos excepción
+        if ("ENVIADO".equalsIgnoreCase(pedido.getEstado())) {
             throw new CambioEstadoPedidoNoPermitidoException(
-                    "El pedido con número " + idPedido + " ya se encuentra en estado '" + estadoActual + "'."
+                    "El pedido nº " + idPedido + " ya consta como ENVIADO en el sistema."
             );
         }
 
-        if (estadoActual.equals("ENVIADO") && estadoNuevo.equals("PENDIENTE")) {
-            throw new CambioEstadoPedidoNoPermitidoException(idPedido, estadoActual, estadoNuevo);
-        }
-
+        // 4. Ejecución de la transacción
         try {
             factory.iniciarTransaccion();
-            pedidoDAO.actualizarEstado(idPedido, estadoNuevo);
+            // Forzamos el estado a "ENVIADO" internamente
+            pedidoDAO.actualizarEstado(idPedido, "ENVIADO");
             factory.confirmarTransaccion();
         } catch (DAOException e) {
             factory.cancelarTransaccion();

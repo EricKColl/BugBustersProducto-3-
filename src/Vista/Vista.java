@@ -353,7 +353,7 @@ public class Vista {
                     "2. Eliminar pedido",
                     "3. Mostrar pedidos pendientes",
                     "4. Mostrar pedidos enviados",
-                    "5. Cambiar estado de pedido",
+                    "5. Marcar pedido como enviado",
                     "0. Volver"
             });
 
@@ -509,30 +509,20 @@ public class Vista {
     }
 
     private void cambiarEstadoPedido() {
-        TerminalUI.sectionTitle("CAMBIAR ESTADO DE PEDIDO");
+        TerminalUI.sectionTitle("MARCAR PEDIDO COMO ENVIADO");
 
-        int numeroPedido = leerEntero("Número de pedido: ");
-        int opcionEstado = leerEntero("Nuevo estado (1-PENDIENTE, 2-ENVIADO): ");
-
-        String nuevoEstado;
-        switch (opcionEstado) {
-            case 1:
-                nuevoEstado = "PENDIENTE";
-                break;
-            case 2:
-                nuevoEstado = "ENVIADO";
-                break;
-            default:
-                TerminalUI.error("Opción de estado no válida.");
-                return;
-        }
+        // Solo pedimos el número de pedido
+        int numeroPedido = leerEntero("Introduce el número de pedido para marcar como ENVIADO: ");
 
         try {
-            controlador.cambiarEstadoPedido(numeroPedido, nuevoEstado);
-            TerminalUI.success("Estado del pedido actualizado correctamente a " + nuevoEstado + ".");
-            TerminalUI.spotlight("ESTADO DEL PEDIDO ACTUALIZADO");
+            // Llamamos al nuevo método del controlador que solo gestiona el envío
+            controlador.marcarPedidoComoEnviado(numeroPedido);
+
+            TerminalUI.success("El pedido nº " + numeroPedido + " ha sido marcado como ENVIADO.");
+            TerminalUI.spotlight("OPERACIÓN COMPLETADA");
 
         } catch (RecursoNoEncontradoException | DAOException | CambioEstadoPedidoNoPermitidoException e) {
+            // Aquí saltarán las excepciones si el ID no existe o si ya estaba enviado
             TerminalUI.exception(e.getMessage());
         }
     }
