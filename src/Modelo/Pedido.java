@@ -7,7 +7,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -16,18 +18,22 @@ public class Pedido {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_pedido")
     private int idPedido;
 
     @ManyToOne
-    @JoinColumn(name = "id_cliente_fk", nullable = false)
+    @JoinColumn(name = "id_cliente", referencedColumnName = "id_cliente", nullable = false)
     private Cliente cliente;
 
     @ManyToOne
-    @JoinColumn(name = "codigo_Articulo_fk", nullable = false)
+    @JoinColumn(name = "id_articulo", referencedColumnName = "id_articulo", nullable = false)
     private Articulo articulo;
 
     private int cantidad;
+
+    @Column(name = "fecha_hora")
     private LocalDateTime fechaHora;
+
     private String estado;
 
     public Pedido(int idPedido, Cliente cliente, Articulo articulo, int cantidad, LocalDateTime fechaHora, String estado) {
@@ -63,12 +69,17 @@ public class Pedido {
         return "PENDIENTE".equalsIgnoreCase(this.estado) && !puedeCancelar();
     }
 
-    public double calcularTotal() {
-        double descuento = cliente.descuentoEnvio();
-        double precioTotalArticulos = articulo.getPrecioVenta() * cantidad;
-        double gastosEnvioFinal = articulo.getGastosEnvio() * (1 - descuento);
+    public BigDecimal calcularTotal() {
+        BigDecimal descuento = cliente.descuentoEnvio();
+        // Multiplicamos el precio del artículo por la cantidad
+        BigDecimal precioTotalArticulos = articulo.getPrecioVenta().multiply(BigDecimal.valueOf(cantidad));
+        // Calculamos (1 - descuento). Usamos BigDecimal.ONE que representa un "1" exacto.
+        BigDecimal multiplicadorEnvio = BigDecimal.ONE.subtract(descuento);
+        // Multiplicamos los gastos de envío base por el multiplicador
+        BigDecimal gastosEnvioFinal = articulo.getGastosEnvio().multiply(multiplicadorEnvio);
 
-        return precioTotalArticulos + gastosEnvioFinal;
+        // Sumamos el precio de los artículos más los gastos de envío finales
+        return precioTotalArticulos.add(gastosEnvioFinal);
     }
 
     public int getNumeroPedido() {

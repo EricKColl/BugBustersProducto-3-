@@ -3,6 +3,8 @@ package Modelo;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 
+import java.math.BigDecimal;
+
 /**
  * Clase que representa un cliente premium de la tienda.
  *
@@ -25,23 +27,25 @@ public class ClientePremium extends Cliente {
     }
 
     @Override
-    public double calcularCuota() {
-        return 30;
+    public BigDecimal calcularCuota() {
+        return BigDecimal.valueOf(30.0);
     }
 
     @Override
-    public double descuentoEnvio() {
-        return 0.2;
+    public BigDecimal descuentoEnvio() {
+        return BigDecimal.valueOf(0.20);
     }
 
     @Override
     public String toString() {
+        // Multiplicamos usando BigDecimal y lo pasamos a entero para que salga "20%" sin decimales
+        BigDecimal porcentaje = descuentoEnvio().multiply(BigDecimal.valueOf(100));
         return "[Cliente Premium] " +
                 "Email: " + getEmail() +
                 " | Nombre: " + getNombre() +
                 " | Domicilio: " + getDomicilio() +
                 " | NIF: " + getNif() +
                 " | Cuota: " + String.format("%.2f €", calcularCuota()) +
-                " | Descuento: " + (descuentoEnvio() * 100) + "%";
+                " | Descuento: " + porcentaje.intValue() + "%";
     }
 }

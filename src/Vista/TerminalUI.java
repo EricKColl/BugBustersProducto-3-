@@ -7,6 +7,7 @@ import Modelo.Pedido;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 public final class TerminalUI {
 
@@ -53,7 +54,7 @@ public final class TerminalUI {
         return text.substring(0, max - 3) + "...";
     }
 
-    private static String money(double value) {
+    private static String money(BigDecimal value) {
         return String.format("%.2f €", value).replace('.', ',');
     }
 
@@ -443,7 +444,7 @@ public final class TerminalUI {
 
         for (Cliente c : clients) {
             String type = c.esPremium() ? "Premium" : "Estándar";
-            String discount = String.format("%.0f%%", c.descuentoEnvio() * 100);
+            String discount = c.descuentoEnvio().multiply(BigDecimal.valueOf(100)).intValue() + "%";
 
             List<String[]> rows = new ArrayList<>();
             rows.add(new String[]{"Tipo: " + type, "Nombre: " + c.getNombre()});
@@ -480,7 +481,7 @@ public final class TerminalUI {
             String nombreCliente = p.getCliente() != null ? p.getCliente().getNombre() : "N/D";
             String descArticulo = p.getArticulo() != null ? p.getArticulo().getDescripcion() : "N/D";
             String fechaFormateada = p.getFechaHora().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-            double total = p.calcularTotal();
+            BigDecimal total = p.calcularTotal();
 
             String estado = p.getEstado();
             if (estado == null || estado.isBlank()) {
@@ -507,7 +508,7 @@ public final class TerminalUI {
         if (client == null) return;
 
         String type = client.esPremium() ? "Premium" : "Estándar";
-        String discount = String.format("%.0f%%", client.descuentoEnvio() * 100);
+        String discount = client.descuentoEnvio().multiply(BigDecimal.valueOf(100)).intValue() + "%";
 
         List<String[]> rows = new ArrayList<>();
         rows.add(new String[]{"Tipo: " + type, "Nombre: " + client.getNombre()});

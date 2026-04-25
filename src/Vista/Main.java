@@ -1,4 +1,7 @@
 package Vista;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 /**
  * Clase principal que inicia la aplicación BugBusters.
  *
@@ -18,6 +21,10 @@ package Vista;
 
 public class Main {
     public static void main(String[] args) {
+        // Apagamos el texto rojo (logs informativos) de Hibernate
+        Logger.getLogger("org.hibernate").setLevel(Level.SEVERE);
+        Logger.getLogger("jakarta.persistence").setLevel(Level.SEVERE);
+
         Vista vista = new Vista();
         vista.iniciar();
     }

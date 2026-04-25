@@ -4,6 +4,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import java.math.BigDecimal;
 
 /**
  * Clase que representa un artículo de la tienda.
@@ -20,18 +23,28 @@ import jakarta.persistence.Table;
 public class Articulo {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_articulo")
+    private int idArticulo;
+
+    @Column(name = "codigo", unique = true, nullable = false)
     private String codigo;
 
     private String descripcion;
 
-    @Column(precision = 10, scale = 2)
-    private double precioVenta;
+    @Column(name = "precio_venta", precision = 10, scale = 2)
+    private BigDecimal precioVenta;
 
-    private double gastosEnvio;
+    @Column(name = "gastos_envio", precision = 10, scale = 2)
+    private BigDecimal gastosEnvio;
+
+    @Column(name = "tiempo_preparacion")
     private int tiempoPreparacionMin; // minutos
+
+    @Column(name = "cantidad_disponible")
     private int cantidadDisponible;
 
-    public Articulo(String codigo, String descripcion, double precioVenta, double gastosEnvio, int tiempoPreparacionMin) {
+    public Articulo(String codigo, String descripcion, BigDecimal precioVenta, BigDecimal gastosEnvio, int tiempoPreparacionMin) {
         this.codigo = codigo;
         this.descripcion = descripcion;
         this.precioVenta = precioVenta;
@@ -43,7 +56,7 @@ public class Articulo {
     public Articulo() {
     }
 
-    public Articulo(String codigo, String descripcion, double precioVenta, double gastosEnvio,
+    public Articulo(String codigo, String descripcion, BigDecimal precioVenta, BigDecimal gastosEnvio,
                     int tiempoPreparacionMin, int cantidadDisponible) {
         this.codigo = codigo;
         this.descripcion = descripcion;
@@ -69,19 +82,19 @@ public class Articulo {
         this.descripcion = descripcion;
     }
 
-    public double getPrecioVenta() {
+    public BigDecimal getPrecioVenta() {
         return precioVenta;
     }
 
-    public void setPrecioVenta(double precioVenta) {
+    public void setPrecioVenta(BigDecimal precioVenta) {
         this.precioVenta = precioVenta;
     }
 
-    public double getGastosEnvio() {
+    public BigDecimal getGastosEnvio() {
         return gastosEnvio;
     }
 
-    public void setGastosEnvio(double gastosEnvio) {
+    public void setGastosEnvio(BigDecimal gastosEnvio) {
         this.gastosEnvio = gastosEnvio;
     }
 
@@ -100,6 +113,10 @@ public class Articulo {
     public void setCantidadDisponible(int cantidadDisponible) {
         this.cantidadDisponible = cantidadDisponible;
     }
+
+    public int getIdArticulo() { return idArticulo; }
+
+    public void setIdArticulo(int idArticulo) { this.idArticulo = idArticulo; }
 
     @Override
     public String toString() {

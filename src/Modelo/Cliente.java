@@ -10,6 +10,8 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
 
+import java.math.BigDecimal;
+
 /**
  * Clase abstracta que representa un cliente genérico de la tienda.
  *
@@ -26,6 +28,11 @@ import jakarta.persistence.Table;
 @DiscriminatorColumn(name = "tipo_cliente")
 public abstract class Cliente {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_cliente")
+    private int idCliente;
+
     @Column(unique = true, nullable = false)
     private String email;
 
@@ -34,10 +41,6 @@ public abstract class Cliente {
 
     @Column(unique = true, nullable = false)
     private String nif;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int idCliente;
 
     public Cliente(String email, String nombre, String domicilio, String nif) {
         this.email = email;
@@ -89,9 +92,9 @@ public abstract class Cliente {
         this.idCliente = idCliente;
     }
 
-    public abstract double calcularCuota();
+    public abstract BigDecimal calcularCuota();
 
-    public abstract double descuentoEnvio();
+    public abstract BigDecimal descuentoEnvio();
 
     public boolean esPremium() {
         return this instanceof ClientePremium;

@@ -11,6 +11,7 @@ import Modelo.ClientePremium;
 import Modelo.Pedido;
 import Excepciones.DAOException;
 import Modelo.Excepciones.*;
+import java.math.BigDecimal;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,42 +41,45 @@ public class Controlador {
         emailValido(email);
 
         if (cantidad <= 0) {
-            // Eliminado new SQLException()
             throw new DAOException("La cantidad del pedido debe ser mayor que 0.");
         }
 
+        // 1. Buscamos los objetos (Ya validados previamente en la Vista)
         Cliente cliente = clienteDAO.buscarPorEmail(email);
-        if (cliente == null) {
-            throw new RecursoNoEncontradoException("Cliente", email);
-        }
+        if (cliente == null) throw new RecursoNoEncontradoException("Cliente", email);
 
         Articulo articulo = articuloDAO.obtenerPorId(codigoArticulo);
-        if (articulo == null) {
-            throw new RecursoNoEncontradoException("Artículo", codigoArticulo);
-        }
+        if (articulo == null) throw new RecursoNoEncontradoException("Artículo", codigoArticulo);
 
+        // 2. Verificamos stock una última vez antes de entrar en transacción
         if (articulo.getCantidadDisponible() < cantidad) {
-            // Eliminado new SQLException()
-            throw new DAOException(
-                    "Stock insuficiente. Disponible: " + articulo.getCantidadDisponible() + " unidades."
-            );
+            throw new DAOException("Stock insuficiente. Disponible: " + articulo.getCantidadDisponible());
         }
 
         try {
+            // INICIO DE TRANSACCIÓN ÚNICA
             factory.iniciarTransaccion();
 
-            Pedido nuevoPedido = new Pedido(0, cliente, articulo, cantidad, LocalDateTime.now(), "PENDIENTE");
+            // 3. RESTAR EL STOCK en el objeto Java
+            int nuevoStock = articulo.getCantidadDisponible() - cantidad;
+            articulo.setCantidadDisponible(nuevoStock);
 
+            // 4. ACTUALIZAR el artículo en la base de datos
+            articuloDAO.actualizar(articulo);
+
+            // 5. CREAR E INSERTAR el pedido
+            Pedido nuevoPedido = new Pedido(0, cliente, articulo, cantidad, LocalDateTime.now(), "PENDIENTE");
             pedidoDAO.insertar(nuevoPedido);
+
+            // FIN DE TRANSACCIÓN
             factory.confirmarTransaccion();
             return nuevoPedido;
 
-        } catch (DAOException e) {
-            factory.cancelarTransaccion();
-            throw e;
         } catch (Exception e) {
+            // Si algo falla (la resta o la inserción), se deshace todo
             factory.cancelarTransaccion();
-            throw new DAOException("Error inesperado al procesar el pedido: " + e.getMessage());
+            if (e instanceof DAOException) throw (DAOException) e;
+            throw new DAOException("Error crítico al procesar el pedido y actualizar stock: " + e.getMessage());
         }
     }
 
@@ -298,8 +302,8 @@ public class Controlador {
         return articulo;
     }
 
-    public Articulo anadirArticulo(String codigo, String descripcion, double precio,
-                                   double envio, int tiempo, int stock) throws DAOException {
+    public Articulo anadirArticulo(String codigo, String descripcion, BigDecimal precio,
+                                   BigDecimal envio, int tiempo, int stock) throws DAOException {
 
         if (articuloDAO.obtenerPorId(codigo) != null) {
             throw new DAOException("No se puede crear: El artículo con código '" + codigo + "' ya existe.");
@@ -354,5 +358,13 @@ public class Controlador {
 
     public List<Articulo> obtenerTodosArticulos() throws DAOException {
         return articuloDAO.obtenerTodos();
+    }
+    public boolean existeArticulo(String codigo) throws DAOException {
+        return articuloDAO.existePorCodigo(codigo);
+    }
+    public boolean hayStockSuficiente(String codigo, int cantidadSolicitada) throws DAOException {
+        Articulo art = articuloDAO.obtenerPorId(codigo);
+        if (art == null) return false;
+        return art.getCantidadDisponible() >= cantidadSolicitada;
     }
 }

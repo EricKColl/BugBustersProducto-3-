@@ -8,12 +8,12 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import java.util.List;
 
-public class PedidoDAOMySQL implements PedidoDAO {
+public class PedidoDAOJPA implements PedidoDAO {
 
     // Sustituimos Connection por EntityManager
     private final EntityManager em;
 
-    public PedidoDAOMySQL(EntityManager em) {
+    public PedidoDAOJPA(EntityManager em) {
         this.em = em;
     }
 
@@ -93,6 +93,7 @@ public class PedidoDAOMySQL implements PedidoDAO {
         }
     }
 
+    @Override
     public void actualizar(Pedido pedido) throws DAOException {
         try {
             em.merge(pedido);

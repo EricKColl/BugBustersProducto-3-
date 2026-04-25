@@ -7,16 +7,6 @@
 -- Producto 4, manteniendo la misma base funcional del
 -- Producto 3 como punto de partida.
 --
--- Orden recomendado de ejecución:
---   1. Tablas Base de Datos.sql
---   2. Procedimientos almacenados.sql
---   3. Datos-Prueba.sql
---
--- Importante:
---   - Los artículos se insertan con stock inicial
---   - Los pedidos se crean mediante el procedimiento
---     insertar_pedido, por lo que el stock se descuenta
---     automáticamente y queda consistente
 -- =========================================================
 
 USE producto4;
@@ -24,19 +14,19 @@ USE producto4;
 -- =========================================================
 -- CLIENTES
 -- =========================================================
-INSERT INTO clientes (email, nombre, domicilio, nif, tipo_cliente) VALUES
-('maria.garcia@bugbusters.com', 'María García López', 'Calle Alcalá 45, Madrid', '12345678A', 'premium'),
-('juan.perez@bugbusters.com', 'Juan Pérez Martínez', 'Avenida Diagonal 320, Barcelona', '23456789B', 'estandar'),
-('laura.sanchez@bugbusters.com', 'Laura Sánchez Ruiz', 'Calle Gran Vía 12, Madrid', '34567890C', 'premium'),
-('carlos.lopez@bugbusters.com', 'Carlos López Fernández', 'Calle Colón 8, Valencia', '45678901D', 'estandar'),
-('ana.martin@bugbusters.com', 'Ana Martín Gómez', 'Paseo de la Castellana 150, Madrid', '56789012E', 'premium'),
-('david.rodriguez@bugbusters.com', 'David Rodríguez Torres', 'Calle Larios 22, Málaga', '67890123F', 'estandar');
+INSERT INTO Clientes (email, nombre, domicilio, nif, tipo_cliente) VALUES
+('maria.garcia@bugbusters.com', 'María García López', 'Calle Alcalá 45, Madrid', '12345678A', 'Premium'),
+('juan.perez@bugbusters.com', 'Juan Pérez Martínez', 'Avenida Diagonal 320, Barcelona', '23456789B', 'Estandar'),
+('laura.sanchez@bugbusters.com', 'Laura Sánchez Ruiz', 'Calle Gran Vía 12, Madrid', '34567890C', 'Premium'),
+('carlos.lopez@bugbusters.com', 'Carlos López Fernández', 'Calle Colón 8, Valencia', '45678901D', 'Estandar'),
+('ana.martin@bugbusters.com', 'Ana Martín Gómez', 'Paseo de la Castellana 150, Madrid', '56789012E', 'Premium'),
+('david.rodriguez@bugbusters.com', 'David Rodríguez Torres', 'Calle Larios 22, Málaga', '67890123F', 'Estandar');
 
 -- =========================================================
 -- ARTICULOS
 -- Stock inicial antes de descontar los pedidos históricos
 -- =========================================================
-INSERT INTO articulos (
+INSERT INTO Articulos (
     codigo,
     descripcion,
     precio_venta,
@@ -56,26 +46,27 @@ INSERT INTO articulos (
 -- Se insertan mediante procedimiento para que el stock
 -- se descuente automáticamente y quede coherente
 -- =========================================================
-CALL insertar_pedido(1, 1, 2, '2026-03-20 12:34:25', 'ENVIADO', @pedido_1);
-CALL insertar_pedido(2, 3, 1, '2026-03-21 09:15:10', 'ENVIADO', @pedido_2);
-CALL insertar_pedido(3, 2, 1, '2026-03-21 18:42:03', 'ENVIADO', @pedido_3);
-CALL insertar_pedido(1, 4, 1, '2026-03-22 11:05:47', 'ENVIADO', @pedido_4);
-CALL insertar_pedido(4, 5, 2, '2026-03-22 16:20:30', 'ENVIADO', @pedido_5);
-CALL insertar_pedido(2, 6, 1, '2026-03-23 10:10:10', 'ENVIADO', @pedido_6);
+INSERT INTO Pedidos (id_cliente, id_articulo, cantidad, fecha_hora, estado) VALUES
+(1, 1, 2, '2026-03-20 12:34:25', 'ENVIADO'),
+(2, 3, 1, '2026-03-21 09:15:10', 'ENVIADO'),
+(3, 2, 1, '2026-03-21 18:42:03', 'ENVIADO'),
+(1, 4, 1, '2026-03-22 11:05:47', 'ENVIADO'),
+(4, 5, 2, '2026-03-22 16:20:30', 'ENVIADO'),
+(2, 6, 1, '2026-03-23 10:10:10', 'ENVIADO');
 
 -- =========================================================
 -- CONSULTAS DE COMPROBACION OPCIONALES
 -- =========================================================
--- SELECT * FROM clientes;
--- SELECT * FROM articulos;
--- SELECT * FROM pedidos;
+-- SELECT * FROM Clientes;
+-- SELECT * FROM Articulos;
+-- SELECT * FROM Pedidos;
 
 -- =========================================================
 -- LIMPIEZA TOTAL OPCIONAL
 -- Quitar '--' solo si quieres vaciar completamente los datos
 -- =========================================================
 -- SET FOREIGN_KEY_CHECKS = 0;
--- TRUNCATE TABLE pedidos;
--- TRUNCATE TABLE articulos;
--- TRUNCATE TABLE clientes;
+-- TRUNCATE TABLE Pedidos;
+-- TRUNCATE TABLE Articulos;
+-- TRUNCATE TABLE Clientes;
 -- SET FOREIGN_KEY_CHECKS = 1;
